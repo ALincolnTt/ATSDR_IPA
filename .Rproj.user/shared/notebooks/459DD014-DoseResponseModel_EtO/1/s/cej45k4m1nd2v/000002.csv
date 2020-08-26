@@ -1,2 +1,0 @@
-"0","ur.final.descStats <- fitdistrplus::descdist(ur.epi.comb.adults$UnitRisk"
-"0","                                             , boot=numsamps)"
