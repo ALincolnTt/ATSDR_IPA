@@ -30,7 +30,6 @@ if (boo.DEBUG==TRUE) {
 numsamps = 10000
 set.seed(123)
 pal6 <- viridis::viridis(6) # purple, blue, aqua, seagreen, limegreen, yellow
-pal8 <- viridis::cividis(8) # navy, cadet blue, steel gray, gray, gold-gray, khaki, mustard, yellow
 bestdpi <- 600
 xlabel_pod <- expression(paste("Ethylene oxide, point of departure ("
                                , mu, "g/", m^3, ")"))
@@ -61,8 +60,9 @@ pod.fm.lung <- EnvStats::rtri(numsamps, 9100, 34000, 14800)
 pod.fm.lung <- as.data.frame(pod.fm.lung)
 colnames(pod.fm.lung)[1] <- "EC.fm.lung"
 pdf_pod.fm.lung <- ggplot2::ggplot(pod.fm.lung, ggplot2::aes(EC.fm.lung)) + 
-    ggplot2::geom_histogram(bins=200, color=pal6[1], fill=pal6[1]
+    ggplot2::geom_histogram(bins=200, color=pal6[3], fill=pal6[3]
                             , alpha=0.5) +
+    ggplot2::xlim(5000,40000) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Distribution of uncertainty around the mean"
                   , subtitle = "Point of departure, female mice, lung tumors"
@@ -71,7 +71,7 @@ pdf_pod.fm.lung <- ggplot2::ggplot(pod.fm.lung, ggplot2::aes(EC.fm.lung)) +
                   , y = "Count") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 fn_pod.fm.lung <- file.path(outdir,"Hist_POD_fm_lung.png")
@@ -93,6 +93,9 @@ ur.fm.lung <- as.data.frame(ur.fm.lung)
 colnames(ur.fm.lung)[1] <- "ur.fm.lung"
 pdf_ur.fm.lung <- ggplot2::ggplot(ur.fm.lung, ggplot2::aes(ur.fm.lung)) + 
     ggplot2::geom_histogram(bins=200,color=pal6[3],fill=pal6[3],alpha=0.5) +
+    # ggplot2::xlim(1e-06,1.4e-05) +
+    ggplot2::scale_x_continuous(name=NULL,breaks=c(1e-6,3e-6,5e-6,7e-6,9e-6
+                                                   , 1.1e-5, 1.3e-5, 1.5e-5)) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Distribution of uncertainty around the mean"
                   , subtitle = "Unit risk, female mice, lung tumors"
@@ -101,7 +104,7 @@ pdf_ur.fm.lung <- ggplot2::ggplot(ur.fm.lung, ggplot2::aes(ur.fm.lung)) +
                   , y = "Count") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 fn_ur.fm.lung <- file.path(outdir,"Hist_IUR_fm_lung.png")
@@ -123,7 +126,8 @@ colnames(pod.fm.lung.alt)[1] <- "EC.fm.lung.alt"
 
 pdf_pod.fm.lung.alt <- ggplot2::ggplot(pod.fm.lung.alt
                                        , ggplot2::aes(EC.fm.lung.alt)) + 
-    ggplot2::geom_histogram(bins=200, color=pal6[1], fill=pal6[1], alpha=0.5) +
+    ggplot2::geom_histogram(bins=200, color=pal6[5], fill=pal6[5], alpha=0.5) +
+    ggplot2::xlim(5000,40000) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Distribution of uncertainty around the mean (Alternate)"
                   , subtitle = "Point of departure, female mice, lung tumors"
@@ -132,7 +136,7 @@ pdf_pod.fm.lung.alt <- ggplot2::ggplot(pod.fm.lung.alt
                   , y = "Count") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 fn_pdf_pod.fm.lung.alt <- file.path(outdir,"Hist_POD_fm_lung_alt.png")
@@ -147,7 +151,10 @@ ur.fm.lung.alt <- as.data.frame(ur.fm.lung.alt)
 colnames(ur.fm.lung.alt)[1] <- "ur.fm.lung.alt"
 pdf_ur.fm.lung.alt <- ggplot2::ggplot(ur.fm.lung.alt
                                       , ggplot2::aes(ur.fm.lung.alt)) + 
-    ggplot2::geom_histogram(bins=200,color=pal6[3],fill=pal6[3],alpha=0.5) +
+    ggplot2::geom_histogram(bins=200,color=pal6[5],fill=pal6[5],alpha=0.5) +
+    ggplot2::xlim(1e-06,1.4e-05) +
+    ggplot2::scale_x_continuous(name=NULL,breaks=c(1e-6,3e-6,5e-6,7e-6,9e-6
+                                                   , 1.1e-5, 1.3e-5, 1.5e-5)) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Distribution of uncertainty around the mean (Alternate)"
                   , subtitle = "Unit risk, female mice, lung tumors"
@@ -156,12 +163,25 @@ pdf_ur.fm.lung.alt <- ggplot2::ggplot(ur.fm.lung.alt
                   , y = "Count") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 fn_pdf_ur.fm.lung.alt <- file.path(outdir,"Hist_IUR_fm_lung_alt.png")
 ggplot2::ggsave(fn_pdf_ur.fm.lung.alt, pdf_ur.fm.lung.alt, height=5, width=7
                 , dpi=bestdpi)
+
+pod.fm.lymph.alt <- EnvStats::rtri(numsamps, 11100, 52800, 21100)
+ur.fm.lymph.alt <- data.frame("ur.fm.lymph.alt" = BMR / pod.fm.lymph.alt)
+
+pod.fm.uter.alt <- EnvStats::rtri(numsamps, 18500, 82000, 32800)
+ur.fm.uter.alt <- data.frame("ur.fm.uter.alt" = BMR / pod.fm.uter.alt)
+
+pod.fm.mamm.alt <- EnvStats::rtri(numsamps, 4280, 24200, 9690)
+ur.fm.mamm.alt <- data.frame("ur.fm.mamm.alt" = BMR / pod.fm.mamm.alt)
+
+ur.fm.comb.alt <- ur.fm.lung.alt + ur.fm.lymph.alt + ur.fm.uter.alt + ur.fm.mamm.alt
+ur.fm.comb.alt <- as.data.frame(ur.fm.comb.alt)
+colnames(ur.fm.comb.alt)[1] <- "UnitRisk"
 
 knitr::include_graphics(path = fn_pdf_ur.fm.lung.alt)
     
@@ -210,7 +230,8 @@ medCombIUR <- median(ur.fm.comb$UnitRisk)
 # Generate PDF for combined tumor types
 pdf <- ggplot2::ggplot(ur.fm.comb, ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[2]) +
+                          , color=pal6[3]) +
+    ggplot2::xlim(1e-05,4e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Probability Density Function"
                   , x = xlabel_ur
@@ -221,7 +242,8 @@ pdf <- ggplot2::ggplot(ur.fm.comb, ggplot2::aes(UnitRisk)) +
 
 # Generate ECDF for combined tumor types
 cdf <- ggplot2::ggplot(ur.fm.comb, ggplot2::aes(UnitRisk)) +
-    ggplot2::stat_ecdf(geom = "point", color=pal6[2], size=1) +
+    ggplot2::stat_ecdf(geom = "point", color=pal6[3], size=1) +
+    ggplot2::xlim(1e-05,4e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Empirical CDF"
                   , x = xlabel_ur
@@ -231,7 +253,7 @@ cdf <- ggplot2::ggplot(ur.fm.comb, ggplot2::aes(UnitRisk)) +
                    , axis.title = ggplot2::element_text(size=8))
 
 # Combine plots into one figure
-ur.fm.all.subtitle <- paste("Unit risk, female mice"
+ur.fm.all.subtitle <- paste("Screening-level unit risk, female mice"
                         , "lung, lymph, uterine, and mammary tumors"
                         , sep = "\n")
 stg <- grid::textGrob(ur.fm.all.subtitle, gp=grid::gpar(fontsize=10))
@@ -287,7 +309,8 @@ df_ur.fm.lung2 <- data.frame("FM.Lung" = ur.fm.lung2)
 # Generate PDF for female mouse lung tumors (refined)
 pdf2 <- ggplot2::ggplot(df_ur.fm.lung2, ggplot2::aes(FM.Lung)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                        , color=pal6[4], size=1) +
+                        , color=pal6[1], size=1) +
+    ggplot2::xlim(4e-06,2e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Probability Density Function"
                   , x = xlabel_ur
@@ -298,7 +321,8 @@ pdf2 <- ggplot2::ggplot(df_ur.fm.lung2, ggplot2::aes(FM.Lung)) +
 
 # Generate ECDF for female mouse lung tumors (refined)
 cdf2 <- ggplot2::ggplot(df_ur.fm.lung2, ggplot2::aes(FM.Lung)) +
-    ggplot2::stat_ecdf(geom = "point", color=pal6[4], size=1) +
+    ggplot2::stat_ecdf(geom = "point", color=pal6[1], size=1) +
+    ggplot2::xlim(4e-06,2e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Empirical CDF"
                   , x = xlabel_ur
@@ -308,9 +332,9 @@ cdf2 <- ggplot2::ggplot(df_ur.fm.lung2, ggplot2::aes(FM.Lung)) +
                    , axis.title = ggplot2::element_text(size=8))
 
 # Combine plots into one figure
-ur.fm.lung.subtitle <- "Unit risk, female mice, lung tumors"
+ur.fm.ref.lung.subtitle <- "Refined unit risk, female mice, lung tumors"
 BMDScaption <- paste(generic.caption,"from BMDS output report", sep = " ")
-stg <- grid::textGrob(ur.fm.lung.subtitle, gp=grid::gpar(fontsize=10))
+stg <- grid::textGrob(ur.fm.ref.lung.subtitle, gp=grid::gpar(fontsize=10))
 cap <- grid::textGrob(BMDScaption, gp=grid::gpar(fontsize=8
                                                      , fontface="italic"))
     
@@ -319,7 +343,7 @@ p.fm.lung.ur <- gridExtra::grid.arrange(tg, stg, pdf2, blankPlot, cdf2, cap
                             , ncol=4, nrow=4
                             , layout_matrix = rbind(c(1,1,1,1), c(2,2,2,2)
                                                     , c(3,4,5,4), c(6,6,6,6))
-                            , heights = c(0.2, 0.3, 4, 0.2)
+                            , heights = c(0.2, 0.2, 4, 0.2)
                             , widths = c(3.5,0.1,3.5,0.1))
 
 ```
@@ -353,7 +377,8 @@ medBMDS <- median(ur.fm.comb2$UnitRisk, na.rm = TRUE)
 # Generate PDF for combined tumor types
 pdf3 <- ggplot2::ggplot(ur.fm.comb2, ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[4], size=1) +
+                          , color=pal6[1], size=1) +
+    ggplot2::xlim(1e-05,6e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Probability Density Function"
                   , x = xlabel_ur
@@ -364,7 +389,8 @@ pdf3 <- ggplot2::ggplot(ur.fm.comb2, ggplot2::aes(UnitRisk)) +
 
 # Generate ECDF for combined tumor types
 cdf3 <- ggplot2::ggplot(ur.fm.comb2, ggplot2::aes(UnitRisk)) +
-    ggplot2::stat_ecdf(geom = "point", color=pal6[4], size=1) +
+    ggplot2::stat_ecdf(geom = "point", color=pal6[1], size=1) +
+    ggplot2::xlim(1e-05,6e-05) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Empirical CDF"
                   , x = xlabel_ur
@@ -374,7 +400,9 @@ cdf3 <- ggplot2::ggplot(ur.fm.comb2, ggplot2::aes(UnitRisk)) +
                    , axis.title = ggplot2::element_text(size=8))
 
 # Combine plots into one figure
-stg <- grid::textGrob(ur.fm.all.subtitle, gp=grid::gpar(fontsize=10))
+ur.fm.ref.subtitle <- paste("Refined unit risk, female mice"
+                            , "lung, lymph, uterine, and mammary tumors", sep="\n")
+stg <- grid::textGrob(ur.fm.ref.subtitle, gp=grid::gpar(fontsize=10))
 cap <- grid::textGrob(BMDScaption, gp=grid::gpar(fontsize=8
                                                  , fontface="italic"))
     
@@ -402,19 +430,26 @@ knitr::include_graphics(path = fn.PDFCDF.fm.all.ur)
 ```{r mouseCompScreenRefined, out.width="75%"}
 
 # Compare Screening-level IUR to Refined IUR
-ur.fm.comb$Type <- "Screening-level"
+ur.fm.comb$Type <- "Screening-level, 90% CI"
 ur.fm.comb2$Type <- "Refined"
+ur.fm.comb.alt$Type <- "Screening-level, alternate"
 ur.fm.comb2 <- ur.fm.comb2[!is.na(ur.fm.comb2$UnitRisk),]
-ur.fm.comb3 <- rbind(ur.fm.comb, ur.fm.comb2)
+ur.fm.comb3 <- rbind(ur.fm.comb, ur.fm.comb.alt, ur.fm.comb2)
+
+# Calculate required percentiles
+screen99 <- signif(quantile(ur.fm.comb$UnitRisk, probs = 0.99), digits=3)
+refine95 <- signif(quantile(ur.fm.comb2$UnitRisk, probs=0.95), digits=3)
+screen99alt <- signif(quantile(ur.fm.comb.alt$UnitRisk, probs=0.99), digits=3)
 
 # Generate graphic
 pdf_mcomp <- ggplot2::ggplot(ur.fm.comb3
                     , ggplot2::aes(x=UnitRisk
                                    ,y=ggplot2::after_stat(count/max(count))
-                    , color=Type, fill=Type)) +
-    ggplot2::geom_density(alpha=0.4) + 
-    ggplot2::scale_color_manual(values=c(pal6[2], pal6[4])) +
-    ggplot2::scale_fill_manual(values=c(pal6[2], pal6[4])) +
+                    , color=Type, linetype=Type)) +
+    ggplot2::geom_density() + 
+    # ggplot2::xlim(1e-05,6e-05) +
+    ggplot2::scale_color_manual(values=c(pal6[1], pal6[3],pal6[5])) +
+    ggplot2::scale_linetype_manual(values=c("solid", "solid", "dashed")) +
     ggplot2::theme_bw() +
     ggplot2::labs(title=groupTitle
                   , subtitle = "Unit risk, female mice, all tumors"
@@ -469,13 +504,8 @@ Use a triangular distribution with min=LEC01, max=UEC01, best=EC01 to create POD
 # Set conversion factor for EtO from ppm to ug/m3
 CF_ppm_ugm3 <- 1802
 
-# Generate EC ppm distribution (original--matches image in text currently)
-pod.epi.lymph <- as.data.frame(EnvStats::rtri(numsamps, 0.00271, 0.147
-                                               , 0.0107))
-colnames(pod.epi.lymph)[1] <- "EC_ppm"
-
 # Generate EC ug/m3 distribution by converting distribution (use this one)
-pod.epi.lymph.ugm3 <- as.data.frame(EnvStats::rtri(numsamps, 0.00271, 0.147,
+pod.epi.lymph.ugm3 <- as.data.frame(EnvStats::rtri(numsamps, 0.00271, 0.0663,
                                                0.0107)*CF_ppm_ugm3)
 colnames(pod.epi.lymph.ugm3)[1] <- "EC_ug_m3"
 
@@ -488,16 +518,15 @@ ur.epi.lymph.perugm3 <- dplyr::mutate(pod.epi.lymph.ugm3
 pdf_ur.epi.lymph <- ggplot2::ggplot(ur.epi.lymph.perugm3
                                 , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[1], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[3], size=1) +
     ggplot2::xlim(0,0.002) +
     ggplot2::theme_bw() +
     ggplot2::labs(subtitle="Lymphoid cancers in workers"
-                 , x=xlabel_ur
                   , y = "Density") +
     ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
                    , axis.text = ggplot2::element_text(size=6)
-                   , axis.title = ggplot2::element_text(size=8))
+                   , axis.title.x = ggplot2::element_blank()
+                   , axis.title.y = ggplot2::element_text(size=8))
 
 # fn_ur.epi.lymph <- file.path(outdir,"Hist_UR_epi_lymph.png")
 # ggplot2::ggsave(fn_ur.epi.lymph, pdf_ur.epi.lymph, height=5, width=7, dpi=600)
@@ -513,7 +542,7 @@ This first example cites personal communication with Dr. Valdez-Flores. (Figure 
 ```{r ur.epi.comb, fig.show="hide"}
 
 # Breast cancers
-pod.epi.breast.ugm3 <- as.data.frame(EnvStats::rtri(numsamps, 0.0101, 0.284
+pod.epi.breast.ugm3 <- as.data.frame(EnvStats::rtri(numsamps, 0.0101, 0.128
                                                , 0.0206)*CF_ppm_ugm3)
 colnames(pod.epi.breast.ugm3)[1] <- "EC"
 ur.epi.breast.perugm3 <- dplyr::mutate(pod.epi.breast.ugm3
@@ -523,16 +552,15 @@ ur.epi.breast.perugm3 <- dplyr::mutate(pod.epi.breast.ugm3
 pdf_ur.epi.breast <- ggplot2::ggplot(ur.epi.breast.perugm3
                                 , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[1], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[3], size=1) +
     ggplot2::xlim(0,0.002) +
     ggplot2::theme_bw() +
     ggplot2::labs(subtitle="Breast cancer in workers"
-                  , x=xlabel_ur
                   , y = "Density") +
     ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
                    , axis.text = ggplot2::element_text(size=6)
-                   , axis.title = ggplot2::element_text(size=8))
+                   , axis.title.x = ggplot2::element_blank()
+                   , axis.title.y = ggplot2::element_text(size=8))
 
 # fn_ur.epi.breast <- file.path(outdir,"Hist_UR_epi_breast.png")
 # ggplot2::ggsave(fn_ur.epi.breast, pdf_ur.epi.breast, height=5, width=7
@@ -553,43 +581,50 @@ epi_caption <- paste0("All cancers: Median=", round(median.epi.comb,5)
 pdf_ur.epi.comb <- ggplot2::ggplot(ur.epi.comb.perugm3
                                    , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[1], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[3], size=1) +
     ggplot2::xlim(0,0.002) +
     ggplot2::theme_bw() +
-    ggplot2::labs(subtitle="All cancers in workers"
+    ggplot2::labs(title = "All cancers in workers"
+                  , subtitle="Probability Density Function"
                   , x=xlabel_ur
                   , y = "Density") +
-    ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
+    ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=8)
+                   , plot.subtitle = ggplot2::element_text(hjust=0, size=6)
                    , axis.text = ggplot2::element_text(size=6)
                    , axis.title = ggplot2::element_text(size=8))
 
 cdf_ur.epi.comb <- ggplot2::ggplot(ur.epi.comb.perugm3
                                    , ggplot2::aes(UnitRisk)) +
-    ggplot2::stat_ecdf(geom = "point", color=pal6[1], size=1) +
+    ggplot2::stat_ecdf(geom = "point", color=pal6[3], size=1) +
     ggplot2::xlim(0,0.002) +
     ggplot2::theme_bw() +
-    ggplot2::labs(subtitle="All cancers in workers"
+    ggplot2::labs(title="All cancers in workers"
+                  , subtitle="Empirical CDF"
                   , x = xlabel_ur
                   , y = "Probability") +
-    ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+                   , plot.subtitle = ggplot2::element_text(hjust=0, size=6)
                    , axis.text = ggplot2::element_text(size=6)
                    , axis.title = ggplot2::element_text(size=8))
 
 # Combine plots into one figure
+epi_screen <-"Epidemiology Screening-level IUR"
+stg <- grid::textGrob(epi_screen, gp=grid::gpar(fontsize=10))
 cap1 <- grid::textGrob(generic.caption, gp=grid::gpar(fontsize=8
                                                      , fontface="italic"))
 cap2 <- grid::textGrob(epi_caption, gp=grid::gpar(fontsize=8
                                                   , fontface="italic"))
+# 1=tg; 2=stg; 3=pdf_ur.epi.lymph; 4=blankPlot; 5=pdf_ur.epi.breast
+# 6=pdf_ur.epi.comb; 7=cdf_ur.epi.comb; 8=cap1; 9=cap2
     
 fn.PDFCDF.ur.epi.comb <- file.path(outdir,"HistECDF_IURepiAll_screen.png")
-p_PDFCDF_ur.epi.comb <- gridExtra::grid.arrange(tg, pdf_ur.epi.lymph, blankPlot
-                            , pdf_ur.epi.breast, pdf_ur.epi.comb
-                            , cdf_ur.epi.comb, cap1, cap2, ncol=4, nrow=5
-                            , layout_matrix = rbind(c(1,1,1,1), c(2,3,4,3)
-                                                    , c(5,3,6,3), c(7,7,7,7)
-                                                    , c(8,8,8,8))
-                            , heights = c(0.3, 3, 3, 0.2, 0.2)
+p_PDFCDF_ur.epi.comb <- gridExtra::grid.arrange(tg, stg, pdf_ur.epi.lymph
+                            , blankPlot, pdf_ur.epi.breast, pdf_ur.epi.comb
+                            , cdf_ur.epi.comb, cap1, cap2, ncol=4, nrow=6
+                            , layout_matrix = rbind(c(1,1,1,1), c(2,2,2,2)
+                                                    , c(3,4,5,4), c(6,4,7,4)
+                                                    , c(8,8,8,8), c(9,9,9,9))
+                            , heights = c(0.3, 0.2, 3, 3, 0.2, 0.2)
                             , widths = c(3.5,0.1,3.5,0.1))
 
 ```
@@ -619,16 +654,16 @@ colnames(ur.epi.lymph.adults)[1] <- "UnitRisk"
 pdf_epi.lymph.adults <- ggplot2::ggplot(ur.epi.lymph.adults
                                         , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[3], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[1], size=1) +
     ggplot2::xlim(-0.005,0.006) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Lymphoid cancers in workers"
-                  , x=xlabel_ur
+                  # , x=xlabel_ur
                   , y = "Density") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
                    , axis.text = ggplot2::element_text(size=6)
-                   , axis.title = ggplot2::element_text(size=8))
+                   , axis.title.x = ggplot2::element_blank()
+                   , axis.title.y = ggplot2::element_text(size=8))
 
 # Breast cancers -- Line 2 Table 4-17 (EPA citation)
 ur.epi.breast.adults <- as.data.frame(rnorm(numsamps
@@ -639,16 +674,16 @@ colnames(ur.epi.breast.adults)[1] <- "UnitRisk"
 pdf_epi.breast.adults <- ggplot2::ggplot(ur.epi.breast.adults
                                         , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[3], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[1], size=1) +
     ggplot2::xlim(-0.005,0.006) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Breast cancer in workers"
-                  , x=xlabel_ur
+                  # , x=xlabel_ur
                   , y = "Density") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
                    , axis.text = ggplot2::element_text(size=6)
-                   , axis.title = ggplot2::element_text(size=8))
+                   , axis.title.x = ggplot2::element_blank()
+                   , axis.title.y = ggplot2::element_text(size=8))
 
 ```
 
@@ -675,27 +710,26 @@ captionSum <- paste0("10,000 draws: Mean="
 pdf_epi.comb.adults.sum <- ggplot2::ggplot(ur.epi.comb.adults
                                        , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal8[3], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[1], size=1) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="All cancers in workers (lines 1 + 2)"
                   , caption = captionSum
                   , x = xlabel_ur
                   , y = "Count") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 cdf_epi.comb.adults.sum <- ggplot2::ggplot(ur.epi.comb.adults
                                        , ggplot2::aes(UnitRisk)) +
-    ggplot2::stat_ecdf(geom = "point", color = "blue") +
+    ggplot2::stat_ecdf(geom = "point", color = pal6[1]) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="All cancers in workers (lines 1 + 2)"
                   , caption = captionSum
                   , x = xlabel_ur
                   , y = "Probability") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , plot.caption = ggplot2::element_text(size=8))
 
 p_PDFCDF_ur.epi.comb2 <- gridExtra::grid.arrange(pdf_epi.lymph.adults
@@ -751,8 +785,7 @@ summaryStringFINAL <- paste0("Mean="
 pdf_epi.comb.adults <- ggplot2::ggplot(ur.epi.comb.adultsFINAL
                                        , ggplot2::aes(UnitRisk)) + 
     ggplot2::geom_density(ggplot2::aes(y=ggplot2::after_stat(count/max(count)))
-                          , color=pal6[3], size=1) +
-    # ggplot2::geom_histogram(bins=200, color=pal8[1], fill=pal8[1], alpha=0.5) +
+                          , color=pal6[1], size=1) +
     ggplot2::xlim(-0.005,0.006) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Lymphoid and breast cancers in workers"
@@ -765,31 +798,48 @@ pdf_epi.comb.adults <- ggplot2::ggplot(ur.epi.comb.adultsFINAL
 # Generate CDF of all cancers (refined)
 cdf_epi.comb.adults <- ggplot2::ggplot(ur.epi.comb.adultsFINAL
                                        , ggplot2::aes(UnitRisk)) +
-    ggplot2::stat_ecdf(geom = "point", color=pal6[3], size=1) +
+    ggplot2::stat_ecdf(geom = "point", color=pal6[1], size=1) +
     ggplot2::xlim(-0.005,0.006) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Lymphoid and breast cancers in workers"
                   , x = xlabel_ur
                   , y = "Probability") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
-                   , axis.text = ggplot2::element_text(size=8)
+                   , axis.text = ggplot2::element_text(size=6)
                    , axis.title = ggplot2::element_text(size=8))
 
 # Draw combined graphic
+ref.epi.sub <- "Epidemiology Refined IUR"
+stg <- grid::textGrob(ref.epi.sub, gp=grid::gpar(fontsize=10))
 cap1 <- grid::textGrob(generic.caption, gp=grid::gpar(fontsize=8
                                                      , fontface="italic"))
 cap2 <- grid::textGrob(captionFINAL2, gp=grid::gpar(fontsize=8
                                                      , fontface="italic"))
+
+# 1=tg; 2=stg; 3=pdf_epi.lymph.adults; 4=blankPlot; 5=pdf_epi.breast.adults
+# 6=pdf_epi.comb.adults, 7=cdf_epi.comb.adults; 8=cap1; 9=cap2
+
 fn.PDFCDF.ur.epi.comb3 <- file.path(outdir,"HistECDF_IURepiAll_refined.png")
-p_PDFCDF_ur.epi.comb3 <- gridExtra::grid.arrange(tg, pdf_epi.lymph.adults
-                            , blankPlot
-                            , pdf_epi.breast.adults, pdf_epi.comb.adults
-                            , cdf_epi.comb.adults, cap1, cap2, ncol=4, nrow=5
-                            , layout_matrix = rbind(c(1,1,1,1), c(2,3,4,3)
-                                                    , c(5,3,6,3), c(7,7,7,7)
-                                                    , c(8,8,8,8))
-                            , heights = c(0.3, 3, 3, 0.2, 0.2)
-                            , widths = c(3.5,0.1,3.5,0.1))
+p_PDFCDF_ur.epi.comb3 <- gridExtra::grid.arrange(tg
+                                                 , stg
+                                                 , pdf_epi.lymph.adults
+                                                 , blankPlot
+                                                 , pdf_epi.breast.adults
+                                                 , pdf_epi.comb.adults
+                                                 , cdf_epi.comb.adults
+                                                 , cap1
+                                                 , cap2
+                                                 , ncol=4
+                                                 , nrow=6
+                                                 , layout_matrix = rbind(c(1,1,1,1)
+                                                                    , c(2,2,2,2)
+                                                                    , c(3,4,5,4)
+                                                                    , c(6,4,7,4)
+                                                                    , c(8,8,8,8)
+                                                                    , c(9,9,9,9))
+                                                 , heights = c(0.3, 0.2, 3
+                                                               , 3, 0.2, 0.2)
+                                                 , widths = c(3.5, 0.1, 3.5, 0.1))
 
 # p_PDFCDF_ur.epi.comb3 <- gridExtra::grid.arrange(pdf_epi.lymph.adults
 #                         , pdf_epi.breast.adults, pdf_epi.comb.adults
@@ -823,10 +873,10 @@ ur.epi.comb <- rbind(ur.epi.comb.perugm3, ur.epi.comb.adultsFINAL)
 pdf_epicomp <- ggplot2::ggplot(ur.epi.comb
                     , ggplot2::aes(x=UnitRisk
                                    ,y=ggplot2::after_stat(count/max(count))
-                    , color=Type, fill=Type)) +
-    ggplot2::geom_density(alpha=0.4) + 
-    ggplot2::scale_color_manual(values=c(pal6[1], pal6[3])) +
-    ggplot2::scale_fill_manual(values=c(pal6[1], pal6[3])) +
+                    , color=Type)) +
+    ggplot2::geom_density() + 
+    ggplot2::scale_color_manual(values=c(pal6[1], pal6[4])) +
+    ggplot2::xlim(-0.003, 0.005) +
     ggplot2::theme_bw() +
     ggplot2::labs(title="Distribution of uncertainty around the mean"
                   , subtitle = "Unit risk, adult workers, all tumors"
