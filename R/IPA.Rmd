@@ -25,14 +25,32 @@ boo.DEBUG <- TRUE
 if (boo.DEBUG==TRUE) {
   report_format="html"
 }
-#
+
 # Define pipe
 `%>%` <- dplyr::`%>%`
-#
-nsamps <- 10000
+
+# Global variables
+nsamps = 10000
+set.seed(123)
+
+# Graph parameters
+pal4 <- viridis::viridis(4)
+pal6 <- viridis::viridis(6) # purple, blue, aqua, seagreen, limegreen, yellow
+bestdpi <- 600
+xlabel_pod <- expression(paste("Ethylene oxide, point of departure ("
+                               , mu, "g/", m^3, ")"))
+xlabel_ur <- expression(paste("Ethylene oxide, inhalation unit risk, per ",mu,"g/",m^{3}))
+generic.caption <- paste0(format(nsamps, big.mark = ","), " draws")
+blankPlot <- ggplot2::ggplot() + ggplot2::geom_blank(ggplot2::aes(1,1)) +
+    ggplot2::theme_void()
+
+# Results directory (create if not existing)
+outdir <- "C:/Users/ann.lincoln/Documents/ATSDRproject/Rcode/Results"
+ifelse(!dir.exists(file.path(outdir))==TRUE
+       , dir.create(file.path(outdir))
+       , FALSE)
 
 ```
-
 
 # Exposure Information for IPRA
 
@@ -42,7 +60,7 @@ When estimating risk by inhalation, risk assessors use the exposure concentratio
 
 ECs for chronic exposure scenarios are time-weighted average concentrations derived from measured or modeled contaminant concentrations in air at a site, adjusted based on the characteristics of the exposure scenario being evaluated (USEPA, 2009). The equation for estimating an EC for a carcinogen, like ethylene oxide, is defined as:
 
-$EC_{c} = \frac{\left(CA\left( \frac{ \mu g}{m^3} \right) \times ET \left( \frac {h}{d} \right) \times EF \left( \frac {d}{y} \right) \times ED \left( y \right) \right)}{AT_{c} \left( y \right) \times \left( \frac {365 d}{y} \right) \times \left( \frac {24 h}{d} \right)}$
+$EC_{c} = \frac{CA\left( \frac{ \mu g}{m^3} \right) \times ET \left( \frac {h}{d} \right) \times EF \left( \frac {d}{y} \right) \times ED \left( y \right)}{AT_{c} \left( y \right) \times \left( \frac {365 d}{y} \right) \times \left( \frac {24 h}{d} \right)}$
 
 where:
 
@@ -82,11 +100,10 @@ Goodness of fit testing using R package "fitdistrplus" (Delignette-Muller and Du
 
 __INSERT RON'S FOOTNOTES AND TABLE HERE__
 
-```{r raw_air, echo=FALSE}
+```{r raw_air, echo=FALSE, fig.show=FALSE}
 
-wd <- file.path(getwd(),"Data")
 CA <- "ContaminantConcentration_ug_m3"
-fnair <- file.path(wd, CA
+fnair <- file.path("..", "Data", CA
   , "NOX_HVAL_2019-12-31 hourly data in basin_converted to ug per m3.xls")
 
 df_CA <- readxl::read_excel(fnair, sheet="ForR", skip = 0, trim_ws = TRUE
@@ -158,14 +175,9 @@ p_hist_Air <- ggplot2::ggplot(df_CA, ggplot2::aes(Adj_EtO)
   ggplot2::xlim(0,3.5) +
   ggplot2::ylim(0,20) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Histogram of ethylene oxide in air"
-         , subtitle="with theoretical density curves"
-         , caption = hist_caption
-         , x = xlabelCA, y = "Count") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 6))
+  ggplot2::labs(x = xlabelCA, y = "Count") +
+  ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                 , axis.title = ggplot2::element_text(size=8))
 
 p_hist_Air01 <- ggplot2::ggplot(df_CA, ggplot2::aes(Adj_EtO)
                  , color=hist_color[1]) +
@@ -176,19 +188,37 @@ p_hist_Air01 <- ggplot2::ggplot(df_CA, ggplot2::aes(Adj_EtO)
   ggplot2::xlim(0,1) +
   ggplot2::ylim(0,20) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Histogram of ethylene oxide in air (excluding tail)"
-         , subtitle="with theoretical density curves"
-         , caption = hist_caption
-         , x = xlabelCA, y = "Count") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 6))
+  ggplot2::labs(x = xlabelCA, y = "Count") +
+  ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                 , axis.title = ggplot2::element_text(size=8))
 
-gridExtra::grid.arrange(p_hist_Air, p_hist_Air01, nrow=1, ncol=2)
+CA_title <- "Histogram of ethylene oxide concentration in air"
+CA_subtitle <- "with theoretical density curves"
+CA_caption <- hist_caption 
+tg=grid::textGrob(CA_title, gp=grid::gpar(fontsize=12, fontface="bold"))
+stg=grid::textGrob(CA_subtitle, gp=grid::gpar(fontsize=10))
+cap1=grid::textGrob(CA_caption, gp=grid::gpar(fontsize=6))
+
+fn_CA_dist <- file.path(outdir,"CAdistribution.png")
+p_CAdist <- gridExtra::grid.arrange(tg, stg, p_hist_Air, p_hist_Air01, blankPlot
+                                    , cap1, ncol=4, nrow=4
+                                    , layout_matrix = rbind(c(1,1,1,1), c(2,2,2,2)
+                                                       , c(3,5,4,5), c(6,6,6,6))
+                                    , heights = c(0.2, 0.2, 3, 0.2)
+                                    , widths = c(2.3, 0.1, 2.3, 0.1))
+
+ggplot2::ggsave(fn_CA_dist, p_CAdist, height=4, width=5, units="in", dpi=bestdpi)
+
+```
+
+
+```{r displayCA, out.width="80%"}
+
+knitr::include_graphics(fn_CA_dist)
 
 rm(df_lnorm, df_lnorm2, p_hist_Air01, p_hist_Air, fnair, hist_caption
-  , hist_color, hist_labs, xlabel, CA)
+  , hist_color, hist_labs, xlabel, CA, p_CAdist, fn_CA_dist, CA_caption
+  , CA_subtitle, CA_title, cap1)
 
 ```
 
@@ -213,7 +243,7 @@ Since these data derive from the American Housing Survey of 2007, more recent da
 ```{r ED_EFH, include=FALSE}
 
 ED <- "ExposureDuration_yr"
-fnED <- file.path(wd, ED, "ExpDuration_2017_2015_2008_summary.xlsx")
+fnED <- file.path("..", "Data", ED, "ExpDuration_2017_2015_2008_summary.xlsx")
 
 df_ExpDur <- readxl::read_excel(fnED, sheet = "Sheet1", trim_ws = TRUE)
 df_ExpDur <- df_ExpDur %>%
@@ -251,7 +281,7 @@ Differences in the three datasets available from the 2007, 2015, and 2017 AHS pu
 
 ```{r ED_AHS2017, include=FALSE}
 
-wd2017 <- file.path(wd, ED,"AHS 2017 National PUF v3.0 SAS")
+wd2017 <- file.path("..", "Data", ED, "AHS 2017 National PUF v3.0 SAS")
 fnED2017 <- file.path(wd2017,"household.sas7bdat")
 
 df_ED2017 <- haven::read_sas(fnED2017)
@@ -295,14 +325,15 @@ p_histED2017_raw <- ggplot2::ggplot(df_ED2017_summary
   ggplot2::geom_col(color="black", fill="light gray") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Bar Plot of Exposure Duration"
+  ggplot2::labs(title="Histogram of Exposure Duration"
          , subtitle="Years residing in one house"
          , caption = ""
          , x = "Years", y = "Number of People") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(hjust=0.5, size = 6)
           , legend.position = "none")
 
 # Not yet adjusted
@@ -312,24 +343,30 @@ p_cdfED2017_raw <- ggplot2::ggplot(df_ED2017_summary
   ggplot2::geom_point(color = "blue") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="CDF of number of years in residence"
+  ggplot2::labs(title="CDF of years in residence"
          , subtitle="Adults age 18 and older"
          , caption = "AHS 2017"
          , x = "Years", y = "Cumulative Fraction") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(size=8))
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
-gridExtra::grid.arrange(p_histED2017_raw, p_cdfED2017_raw, nrow=1, ncol=2)
+fn_EDVar_PCDF2017 <- file.path(outdir,"EDvar_PDFCDF_2017.png")
+p_EDvar_histCDF2017 <- gridExtra::grid.arrange(p_histED2017_raw, p_cdfED2017_raw
+                                               , nrow=1, ncol=2)
+ggplot2::ggsave(fn_EDVar_PCDF2017, p_EDvar_histCDF2017, width=5, height=4
+                , dpi=bestdpi)
 
 rm(fnED2017, grandTotalPeople, wd2017)
 
 ```
 
+
 ```{r ED_AHS2015, include=FALSE}
 
-wd2015 <- file.path(wd, ED,"AHS 2015 National PUF v3.0 SAS")
+wd2015 <- file.path("..", "Data", ED, "AHS 2015 National PUF v3.0 SAS")
 fnED2015 <- file.path(wd2015,"household.sas7bdat")
 
 df_ED2015 <- haven::read_sas(fnED2015)
@@ -373,15 +410,15 @@ p_histED2015_raw <- ggplot2::ggplot(df_ED2015_summary
   ggplot2::geom_col(color="black", fill="light gray") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Bar Plot of Exposure Duration"
+  ggplot2::labs(title="Histogram of Exposure Duration"
          , subtitle="Years residing in one house"
          , caption= "AHS 2015"
          , x = "Years", y = "Number of People") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=8)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
-          , legend.position = "none")
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
 # Not yet adjusted
 p_cdfED2015_raw <- ggplot2::ggplot(df_ED2015_summary
@@ -390,16 +427,21 @@ p_cdfED2015_raw <- ggplot2::ggplot(df_ED2015_summary
   ggplot2::geom_point(color = "blue") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Number of years in residence"
+  ggplot2::labs(title="CDF of years in residence"
          , subtitle="Adults age 18 and older"
          , caption = "AHS 2015"
          , x = "Number of Years", y = "Cumulative Fraction") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(size=8))
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
-gridExtra::grid.arrange(p_histED2015_raw, p_cdfED2015_raw, nrow=1, ncol=2)
+fn_EDVar_PCDF2015 <- file.path(outdir,"EDvar_PDFCDF_2015.png")
+p_EDvar_histCDF2015 <- gridExtra::grid.arrange(p_histED2015_raw, p_cdfED2015_raw
+                                               , nrow=1, ncol=2)
+ggplot2::ggsave(fn_EDVar_PCDF2015, p_EDvar_histCDF2015, width=5, height=4
+                , dpi=bestdpi)
 
 rm(fnED2015, wd2015,grandTotalPeople)
 
@@ -407,7 +449,7 @@ rm(fnED2015, wd2015,grandTotalPeople)
 
 ```{r ED_AHS2007, include=FALSE}
 
-wd2007 <- file.path(wd, ED,"AHS 2007 National PUF v1.1 SAS")
+wd2007 <- file.path("..", "Data", ED, "AHS 2007 National PUF v1.1 SAS")
 fnED2007 <- file.path(wd2007,"newhouse.sas7bdat")
 
 df_ED2007 <- haven::read_sas(fnED2007)
@@ -451,15 +493,15 @@ p_histED2007_raw <- ggplot2::ggplot(df_ED2007_summary
   ggplot2::geom_col(color="black", fill="light gray") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Bar Plot of Exposure Duration"
+  ggplot2::labs(title="Histogram of Exposure Duration"
          , subtitle="Years residing in one house"
          , caption= "AHS 2007"
          , x = "Years", y = "Number of People") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=8)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
-          , legend.position = "none")
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
 # Not yet adjusted
 p_cdfED2007_raw <- ggplot2::ggplot(df_ED2007_summary
@@ -468,16 +510,21 @@ p_cdfED2007_raw <- ggplot2::ggplot(df_ED2007_summary
   ggplot2::geom_point(color = "blue") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Number of years in residence"
+  ggplot2::labs(title="CDF of years in residence"
          , subtitle="Adults age 18 and older"
          , caption = "AHS 2007"
          , x = "Number of Years", y = "Cumulative Fraction") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(size=8))
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
-gridExtra::grid.arrange(p_histED2007_raw, p_cdfED2007_raw, nrow=1, ncol=2)
+fn_EDVar_PCDF2007 <- file.path(outdir,"EDvar_PDFCDF_2007.png")
+p_EDvar_histCDF2007 <- gridExtra::grid.arrange(p_histED2007_raw, p_cdfED2007_raw
+                                               , nrow=1, ncol=2)
+ggplot2::ggsave(fn_EDVar_PCDF2007, p_EDvar_histCDF2007, width=5, height=4
+                , dpi=bestdpi)
 
 rm(fnED2007,wd2007,grandTotalPeople)
 
@@ -546,14 +593,13 @@ df_ED_all_long <- df_ED_all_long[!is.na(df_ED_all_long$CumFract_raw),]
 df_ED_all_long$SurveyYear <- as.factor(df_ED_all_long$SurveyYear)
 
 # Plot raw CDF data, overlay summary points
-pal_dot <- viridis::viridis(4)
 p_cdfED_all <- ggplot2::ggplot(df_ED_all_long) +
   ggplot2::geom_point(ggplot2::aes(x=NumYears, y=CumFract_raw
                    , color = SurveyYear, shape = SurveyYear)) +
   ggplot2::geom_smooth(ggplot2::aes(x=NumYears, y=CumFract_summary)
              , method = "loess", color = "black", se=FALSE
              , na.rm = TRUE) +
-  ggplot2::scale_color_manual(values = pal_dot) +
+  ggplot2::scale_color_manual(values = pal4) +
   ggplot2::geom_vline(xintercept = 18, color="red") +
   ggplot2::geom_vline(xintercept = 85, color="red") +
   ggplot2::facet_grid(SurveyYear ~ .) +
@@ -565,10 +611,13 @@ p_cdfED_all <- ggplot2::ggplot(df_ED_all_long) +
          , x = "Number of Years", y = "Cumulative Fraction") +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
           , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
+          , axis.text = ggplot2::element_text(size=8)
+          , axis.title = ggplot2::element_text(size=10)
           , plot.caption = ggplot2::element_text(size=8)
           , legend.position = "none")
-p_cdfED_all
+
+fn_cdfEDall <- file.path(outdir, "CompareAHS_RawVsSummary_AllYears.png")
+ggplot2::ggsave(fn_cdfEDall, p_cdfED_all, width=7, height=7, dpi=bestdpi)
 
 rm(p_cdfED2007_raw, p_cdfED2015_raw, p_cdfED2017_raw, p_histED2007_raw
   , p_histED2015_raw, p_histED2017_raw, df_ED2007, df_ED2007_2
@@ -579,9 +628,27 @@ rm(p_cdfED2007_raw, p_cdfED2015_raw, p_cdfED2017_raw, p_histED2007_raw
 
 ```
 
-```{r ED_select, out.width="80%", fig.cap="2017 AHS occupancy data", echo=FALSE}
+```{r display_AHScompare, out.width="80%"}
 
-fnStats <- file.path(wd,ED,"SpecificStatsFromAHSDataMultipleYears.xlsx")
+knitr::include_graphics(fn_cdfEDall)
+
+rm(p_cdfED2007_raw, p_cdfED2015_raw, p_cdfED2017_raw, p_histED2007_raw
+  , p_histED2015_raw, p_histED2017_raw, df_ED2007, df_ED2007_2
+  , df_ED2007_complete, df_ED2007_summary, df_ED2015, df_ED2015_2
+  , df_ED2015_complete, df_ED2015_summary, df_ED2017, df_ED2017_2
+  , df_ED_2007trim, df_ED_2015trim, df_ED_2017trim, df_ED_all
+  , df_ED_all_formal, df_ED_all_long, df_ED_raw, df_ExpDur, p_cdfED_all
+  , p_EDvar_histCDF2007, p_EDvar_histCDF2015, p_EDvar_histCDF2017
+  , EDall_caption, fn_cdfEDall, fn_EDVar_PCDF2007, fn_EDVar_PCDF2015
+  , fn_EDVar_PCDF2017)
+
+```
+
+
+```{r ED_select, out.width="80%", echo=FALSE}
+
+fnStats <- file.path("..", "Data", ED
+                     , "SpecificStatsFromAHSDataMultipleYears.xlsx")
 
 dfStats <- readxl::read_excel(fnStats, sheet = "SelectedParameters"
                , range = "A2:E10"
@@ -612,9 +679,7 @@ knitr::kable(dfStats2, escape=FALSE, format=report_format
   kableExtra::column_spec(1, bold=TRUE) %>%
   kableExtra::collapse_rows(1, valign = "top")
 
-# knitr::include_graphics(file.path(wd,ED,"2017AHSOccupancyDataByAgeGroup.png"))
-
-rm(dfStats, dfStats2, Stats_caption, stats_colnames)
+rm(dfStats, dfStats2, Stats_caption, stats_colnames, fnStats)
 
 ```
 
@@ -659,36 +724,40 @@ p_cdfED2017_comp <- ggplot2::ggplot(df_ED2017_sumB
                          , y=CumFract_2017)) +
   ggplot2::geom_smooth(data=df_EDsampleCDF
              , ggplot2::aes(x=NumYears, y=CumFract)
-             , method = "loess", se=FALSE, color=pal_dot[3]
+             , method = "loess", se=FALSE, color=pal4[3]
              , size = 1) +
-  ggplot2::geom_point(color = pal_dot[1], shape=20) +
+  ggplot2::geom_point(color = pal4[1], shape=20) +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="CDF of number of years in residence"
-         , subtitle="Adults age 18 and older"
+  ggplot2::labs(subtitle="CDF of number of years in residence"
          , caption = ahs_caption
          , x = "Years", y = "Cumulative Fraction") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(size=8))
+  ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(size=6))
 
 p_histED2017_resamp <- ggplot2::ggplot(as.data.frame(df_EDsampHist)
                     , ggplot2::aes(x=NumYears)) +
   ggplot2::geom_histogram(binwidth = 1, color="black", fill="light gray") +
   ggplot2::xlim(0,100) +
   ggplot2::theme_bw() +
-  ggplot2::labs(title="Histogram of Exposure Duration: Actual Data"
-         , subtitle="Years residing in one house"
+  ggplot2::labs(title="Exposure duration, actual data, adults 18+"
+         , subtitle="Histogram of years residing in one house"
          , caption = ""
          , x = "Years", y = "Number of People") +
   ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
           , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(hjust=1, size = 6)
           , legend.position = "none")
 
-gridExtra::grid.arrange(p_histED2017_resamp, p_cdfED2017_comp, nrow=2, ncol=1)
+fn_ED2017var <- file.path(outdir, "ED2017resampDist.png")
+p_ED2017var <- gridExtra::grid.arrange(p_histED2017_resamp, p_cdfED2017_comp
+                                       , nrow=2, ncol=1)
+
+ggplot2::ggsave(fn_ED2017var, p_ED2017var, width=5, height=4, dpi=bestdpi)
 
 # Data to use for ECDF: df_ED2017_sumB
 # Data to use for GoF tests: df_EDsampHist
@@ -696,7 +765,7 @@ gridExtra::grid.arrange(p_histED2017_resamp, p_cdfED2017_comp, nrow=2, ncol=1)
 rm(df_EDsample, df_EDsampleCDF, df_ED2017_complete, df_ED2017_summary
   , p_cdfED2017_comp, p_histED2017_resamp, ahs_caption, AHSsample
   , EDall_caption, grandTotalPeople, Stats_caption, stats_colnames
-  , fnStats, df_ED2017_sumB, ED)
+  , fnStats, df_ED2017_sumB, ED, fn_ED2017var, p_ED2017var)
 
 ```
 
@@ -744,7 +813,7 @@ knitr::kable(df_descED, escape=FALSE, format=report_format, digits = 5
                , font_size = 10, full_width = TRUE
                , position = "left", fixed_thead = TRUE)
 
-rm(descED, descEDAdj)
+rm(descED, descEDAdj, df_descED, df_descED, desc_caption, descEDcont)
 
 ```
 
@@ -807,28 +876,21 @@ knitr::kable(df_gof, escape=FALSE, format=report_format, digits=3
 
 # ggplot2 version of above graphic
 dcomp <- fitdistrplus::cdfcomp(list(ED_fit_gamma, ED_fitweibull)
-                , legendtext = c("gamma","Weibull"),
-  xlab = "Number of years", xlim = c(0, 90),
-  fitcol = c("red","blue"), fitlty = 1,
-  xlegend = "topright", plotstyle = "ggplot", addlegend = FALSE)
-dcomp + ggplot2::theme_minimal() + ggplot2::ggtitle("AHS 2017 occupancy")
+                , legendtext = c("gamma","Weibull")
+                , main="AHS 2017 occupancy (Exposure Duration)"
+                , xlab = "Number of years", xlim = c(0, 90)
+                , fitcol = c(pal4[1],pal4[3]), fitlty = 1
+                , xlegend = "topright", plotstyle = "ggplot"
+                , addlegend = TRUE)
+dcomp + ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8))
 
-# ggplot2 version of histogram -- really crappy
-# EDcont_ddens <- fitdistrplus::denscomp(list(ED_fit_gamma, ED_fitweibull)
-#                                        , legendtext = c("gamma","Weibull")
-#                                        , main = "Histogram of occupancy"
-#                                        , xlab = "Number of years"
-#                                        # , xlim = c(0, 90)
-#                                        , fitcol = c("red","blue")
-#                                        , fitlty = 1
-#                                        , xlegend = "bottom"
-#                                        , plotstyle = "ggplot"
-#                                        , addlegend = TRUE)
-# EDcont_ddens + ggplot2::theme_minimal() +
-#     ggplot2::ggtitle("AHS 2017 Occupancy")
+fn_EDgof <- file.path(outdir,"ED_GoF_CDF.png")
+ggplot2::ggsave(fn_EDgof, dcomp, height=4, width=7, units="in", dpi=bestdpi)
 
 # Generate qqplot
-set.seed(123)
 sampq <- quantile(df_EDsampHist$NumYears, probs=seq(0.01, 0.99, 0.01))
 theorqg <- qgamma(ppoints(length(sampq)), shape = 0.4682031
          , scale = 24.9173754)
@@ -836,7 +898,7 @@ theorqw <- qweibull(ppoints(length(sampq)), shape = 0.6230204
          , scale = 9.2477465)
 df_qq <- as.data.frame(cbind(theorqg, theorqw, sampq))
 
-ggplot2::ggplot(df_qq, ggplot2::aes(x=theorqg, y=sampq)) +
+p_qqED <- ggplot2::ggplot(df_qq, ggplot2::aes(x=theorqg, y=sampq)) +
   ggplot2::geom_point(color="red", shape = 1) +
   ggplot2::geom_point(ggplot2::aes(x=theorqw, y=sampq)
             , color="blue", shape = 1) +
@@ -849,15 +911,19 @@ ggplot2::ggplot(df_qq, ggplot2::aes(x=theorqg, y=sampq)) +
          , caption = ""
          , x = "Theoretical distribution"
          , y = "Empirical distribution") +
-  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
-          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-          , axis.text = ggplot2::element_text(size=10)
-          , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
-          , legend.position = "none")
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=8)
+          , plot.subtitle = ggplot2::element_text(hjust=0.5, size=6)
+          , axis.text = ggplot2::element_text(size=8)
+          , plot.caption = ggplot2::element_text(hjust=0.5, size=6)
+          , legend.position = "bottom")
+
+fn_EDqq <- file.path(outdir,"ED_qq.png")
+ggplot2::ggsave(fn_EDqq, p_qqED, width=5, height=4, dpi=bestdpi)
 
 rm(ED_fitlognorm, ED_fitweibull, df_gof, gof_ED_gamma, gof_ED_lnorm
-  , gof_ED_weib, desc_caption, gof_caption)
-
+  , gof_ED_weib, desc_caption, gof_caption, fn_EDgof, fn_EDqq, ADstargamma
+  , ADstarln, ADstarwb, ADstatgamma, ADstatln, ADstatwb, nsamp, sampq
+  , theorqg, theorqw, p_qqED, df_qq, dcomp)
 
 ```
 
@@ -907,7 +973,7 @@ EDdisc_ddens <- fitdistrplus::denscomp(ED_fitnbinom
                                        , xlegend = "bottom"
                                        , plotstyle = "ggplot"
                                        , addlegend = TRUE)
-EDdisc_ddens + ggplot2::theme_minimal()
+EDdisc_ddens + ggplot2::theme_bw()
 
 EDdisc_dcomp <- fitdistrplus::cdfcomp(ED_fitnbinom
                                       , legendtext = c("Negative binomial"
@@ -919,7 +985,7 @@ EDdisc_dcomp <- fitdistrplus::cdfcomp(ED_fitnbinom
                                       , fitcol = "blue", fitlty = 1
                                       , plotstyle = "ggplot"
                                       , addlegend = TRUE)
-EDdisc_dcomp + ggplot2::theme_minimal()
+EDdisc_dcomp + ggplot2::theme_bw()
 
 rm(descED, df_EDchi2, ED_fitnbinom, ED_fitpois, ED_gofdisc, EDdisc_dcomp
    , EDdisc_ddens)
@@ -962,7 +1028,7 @@ knitr::kable(df_ED_EProb_char, escape=FALSE, format=report_format, align="cr"
                , position = "left", fixed_thead = TRUE)
 
 rm(df_ED_EProb_char, ED_EProb_caption, ED_EProb_headings, gof_EDcaption
-   , gof_EDheadings, grandTotalEDProbs, grandTotalPeople)
+   , gof_EDheadings, grandTotalEDProbs, grandTotalPeople, ED_fit_gamma)
 
 # Use full empirical distribution data df_ED_EProb variability
 # Truncate to >=7years and max AT, which will be 85 years (ET <= AT)
@@ -1037,6 +1103,8 @@ knitr::kable(df_descETvar, escape=FALSE, format=report_format
                               , font_size = 10, full_width = FALSE
                               , position = "left", fixed_thead = TRUE)
 
+rm(desc_ETvar, desc_caption, df_descETvar)
+
 ```
 
 
@@ -1067,12 +1135,10 @@ fit_ET_tnorm <- fitdistrplus::fitdist(df_ETvar, "tnorm", method="mle"
 # Get GOF stats
 gofETntrunc <- fitdistrplus::gofstat(fit_ET_tnorm, fitnames="tnorm")
 df_gofET <- data.frame(Distribution = "Truncated normal (4,24)"
-                     # , AD_statistic = gofETntrunc$ad
-                     # , AD_result = gofETntrunc$adtest
-                     , KS_statistic = gofETntrunc$ks
-                     , KS_result = gofETntrunc$kstest
-                     , AIC = gofETntrunc$aic
-                     , BIC = gofETntrunc$bic)
+                       , KS_statistic = gofETntrunc$ks
+                       , KS_result = gofETntrunc$kstest
+                       , AIC = gofETntrunc$aic
+                       , BIC = gofETntrunc$bic)
 rownames(df_gofET) <- NULL
 
 gof_ETcaption <- "Goodness of fit results for exposure time"
@@ -1084,45 +1150,64 @@ knitr::kable(df_gofET, escape=FALSE, format=report_format
 
 # Graph histogram and ECDF
 ET_ddens <- fitdistrplus::denscomp(fit_ET_tnorm
-                        , legendtext = c("Truncated normal (4,24)"
-                                         , "Empirical data")
-                        , main = "Histogram of exposure time"
-                        , xlab = "Hours per day", xlim = c(0, 25)
+                        , main = NULL
+                        , xlab = "Hours per day", xlim = c(0,24)
                         , fitcol = "red", fitlty = 1
-                        , xlegend = "bottom"
-                        , plotstyle = "ggplot", addlegend = TRUE)
-ET_ddens + ggplot2::theme_minimal()
+                        , plotstyle = "ggplot", addlegend = FALSE)
+p_ET_ddens <- ET_ddens + ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust=0, size=8)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , legend.position = "none")
+
 
 ET_dcomp <- fitdistrplus::cdfcomp(fit_ET_tnorm
-                        , legendtext = c("Truncated normal (4,24)"
-                                         , "Empirical data")
-                        , main = "CDF of exposure time"
-                        , xlab = "Hours per day", xlim = c(0, 25)
+                        , main = NULL
+                        , ylab = "Probability"
+                        , xlab = "Hours per day", xlim = c(0,24)
                         , fitcol = "red", fitlty = 1
-                        , xlegend = "bottom", plotstyle = "ggplot"
-                        , addlegend = TRUE)
-ET_dcomp + ggplot2::theme_minimal()
+                        , plotstyle = "ggplot", addlegend = FALSE)
+p_ET_dcomp <- ET_dcomp + ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust=0, size=8)
+          , axis.text = ggplot2::element_text(size=6)
+          , axis.title = ggplot2::element_text(size=8)
+          , legend.position = "none")
+
+fn_ETvar <- file.path(outdir,"ETvar_gofplots.png")
+ETinfo <- "Truncated normal distribution fit to empirical data"
+tg <- grid::textGrob("Distribution of Exposure Time"
+                     , gp=grid::gpar(fontsize=10))
+stg <- grid::textGrob(ETinfo, gp=grid::gpar(fontsize=8))
+p_ETvar_gof <- gridExtra::grid.arrange(tg, stg, p_ET_ddens, p_ET_dcomp
+                                       , blankPlot, ncol=4, nrow=3
+                                       , layout_matrix = rbind(c(1,1,1,1)
+                                                               , c(2,2,2,2)
+                                                               ,c(3,5,4,5))
+                                       , heights = c(0.2, 0.2, 3.5)
+                                       , widths = c(3, 0.5, 3, 0.5))
+ggplot2::ggsave(fn_ETvar, p_ETvar_gof, width=7, height=5, dpi=bestdpi)
 
 # Keep fit_ET_tnorm as fitted distribution, df_ETvar as data source
 
 rm(desc_ETvar, df_descETvar, df_gofET, ET_dcomp, ET_ddens, gofETntrunc
-   , desc_caption, gof_ETcaption, lbound, ubound)
+   , desc_caption, gof_ETcaption, lbound, ubound, p_ETvar_gof, p_ET_dcomp
+   , p_ET_ddens, fn_ETvar, ETinfo, tg, stg)
 
 ```
 
-### Averaging Time __(SIGNIFICANTLY REVISED)__
+### Averaging Time
 
 In point estimate risk estimates, the Averaging Time (AT) for any receptor when evaluating a carcinogen is equal to a lifetime of 70 years. This value is considered a constant for evaluating all carcinogens. This is the value currently used for developing residential regional screening levels (RSL) by EPA for soil, air, and tap water (USEPA, 2020). Current data suggests that 78 years is a more appropriate value to reflect the average life expectancy. Moreover, in their lifetable analysis used to derive a unit risk for EtO, USEPA assumes a life time value of 85 years (USEPA, 2011). This assumption can result in disconcordance of definitions for lifetime and can overestimate risk for exposure scenarios with lifetimes defined as greater than 85 years.
 
-Averaging time is the least sensitive variable based on a Tier 1 sensitivity analysis (US EPA 2001). Nonetheless, using a point value of 70 years, as recommended in the Exposure Factors Handbook (US EPA 2011) does not reflect the variability inherent in life spans. Current data suggests that the human lifespan has increased and that 70 years may be low. __[CHRIS K: can you add a statement about how the tox data reflect 70 year lifespan and therefore using 85 years may overestimate risk?]__
+Averaging time is the least sensitive variable based on a Tier 1 sensitivity analysis (US EPA 2001). Nonetheless, using a point value of 70 years, as recommended in the Exposure Factors Handbook (US EPA 2011) does not reflect the variability inherent in life spans. Current data suggests that the human lifespan has increased and that 70 years may be low.
 
 #### Alternate Data
 
 The data used by EPA derive from the Centers for Disease Control (CDC) National Vital Statistics Report (Xu et al. 2010) and are based on data collected in 2007. Newer data are available, with the most recent life tables published in 2019 for data collected in 2017 (Arias and Xu 2019a). Table 1 in this publication presents the probability of dying in each year of life, up to 100 years, with a final category representing >100 years of life. These data are available for download from the CDC website (Arias and Xu 2019b) and are summarized here.
 
-```{r AT_data, echo=FALSE, fig.width=7, fig.height=7}
+```{r AT_data, echo=FALSE, fig.show="hide"}
 
-wd <- file.path(getwd(), "Data", "AveragingTime_y")
+wd <- file.path("..", "Data", "AveragingTime_y")
 fn2007 <- file.path(wd, "LIFETIME DISTRIBUTION.xlsx")
 df_AT07 <- readxl::read_excel(fn2007, sheet = 1, range = "D4:F21"
                             , trim_ws = TRUE
@@ -1143,13 +1228,11 @@ df_AT17 <- df_AT17 %>%
                   , CumFract = cumsum(Fraction))
 
 # Generate graphs
-pal_dot <- viridis::viridis(4)
-
 AT07_caption <- "US EPA 2011"
 p_cdf2007 <- ggplot2::ggplot(df_AT07, ggplot2::aes(x=Age, y=CumFractDying)) +
-    ggplot2::geom_smooth(method = "loess", se=FALSE, color=pal_dot[4]
+    ggplot2::geom_smooth(method = "loess", se=FALSE, color=pal6[4]
                          , size = 1) +
-    ggplot2::geom_point(color = pal_dot[3], shape=20) +
+    ggplot2::geom_point(color = pal6[2], shape=20) +
     ggplot2::geom_vline(ggplot2::aes(xintercept=18), color = "red", size=1) +
     ggplot2::geom_vline(ggplot2::aes(xintercept=85), color = "red", size=1) +
     ggplot2::annotate(geom="text", y=0.80, x=23, label="18 years", color="red"
@@ -1159,8 +1242,7 @@ p_cdf2007 <- ggplot2::ggplot(df_AT07, ggplot2::aes(x=Age, y=CumFractDying)) +
     ggplot2::xlim(0,100) +
     ggplot2::ylim(0,1) +
     ggplot2::theme_bw() +
-    ggplot2::labs(title="CDF of lifespan (2007 data)"
-                  # , subtitle=""
+    ggplot2::labs(title="ECDF of lifespan (2007 data)"
                   , caption = AT07_caption
                   , x = "Years", y = "Cumulative Fraction") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
@@ -1170,9 +1252,9 @@ p_cdf2007 <- ggplot2::ggplot(df_AT07, ggplot2::aes(x=Age, y=CumFractDying)) +
 
 AT17_caption <- "Arias & Xu, 2019b, Table 1"
 p_cdf2017 <- ggplot2::ggplot(df_AT17, ggplot2::aes(x=Age, y=CumFract)) +
-    ggplot2::geom_smooth(method = "loess", se=FALSE, color=pal_dot[2]
+    ggplot2::geom_smooth(method = "loess", se=FALSE, color=pal6[3]
                          , size = 1) +
-    ggplot2::geom_point(color = pal_dot[1], shape=20) +
+    ggplot2::geom_point(color = pal6[1], shape=20) +
     ggplot2::geom_vline(ggplot2::aes(xintercept=18), color = "red", size=1) +
     ggplot2::geom_vline(ggplot2::aes(xintercept=85), color = "red", size=1) +
     ggplot2::annotate(geom="text", y=0.80, x=23, label="18 years", color="red"
@@ -1182,8 +1264,7 @@ p_cdf2017 <- ggplot2::ggplot(df_AT17, ggplot2::aes(x=Age, y=CumFract)) +
     ggplot2::xlim(0,100) +
     ggplot2::ylim(0,1) +
     ggplot2::theme_bw() +
-    ggplot2::labs(title="CDF of lifespan (2017 Life Table data)"
-                  # , subtitle=""
+    ggplot2::labs(title="ECDF of lifespan (2017 Life Table data)"
                   , caption = AT17_caption
                   , x = "Years", y = "Cumulative Fraction") +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
@@ -1210,12 +1291,23 @@ p_histAT2017 <- ggplot2::ggplot(as.data.frame(df_AT17)
     ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, size=10)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
                    , axis.text = ggplot2::element_text(size=10)
-                   , plot.caption = ggplot2::element_text(hjust=1, size = 8)
+                   , plot.caption = ggplot2::element_text(size = 8)
                    , legend.position = "none")
 
-gridExtra::grid.arrange(p_histAT2017, p_cdf2017, p_cdf2007, nrow=3, ncol=1)
+fn_AT_2011v2017 <- file.path(outdir,"AT_CompDataDistr.png")
+p_AT_2011v2017 <- gridExtra::grid.arrange(p_histAT2017, p_cdf2017, p_cdf2007
+                                          , nrow=3, ncol=1)
+ggplot2::ggsave(fn_AT_2011v2017, p_AT_2011v2017, height = 7, width = 7
+                , units = "in", dpi = bestdpi)
 
-rm(fn2007, fn2017, grandTotalPeople, hist_caption, AT17_caption, pal_dot)
+```
+
+```{r display_AT2011v2017, out.width="80%"}
+
+knitr::include_graphics(fn_AT_2011v2017)
+
+rm(fn2007, fn2017, grandTotalPeople, hist_caption, AT17_caption, fn_ccompAT
+   , fn_dcompAT, fn_AT_2011v2017)
 
 ```
 
@@ -1260,7 +1352,7 @@ knitr::kable(df_descAT17, escape=FALSE, format=report_format
 
 ```
 
-```{r gof_AT, echo=FALSE}
+```{r gof_AT, echo=FALSE, fig.show="hide"}
 
 fitAT_weib <- fitdistrplus::fitdist(df_ATsample$AgeAtDeath, "weibull"
                                     , method = "mle")
@@ -1303,45 +1395,80 @@ knitr::kable(df_gof, escape=FALSE, format=report_format
                               , position = "left", fixed_thead = TRUE)
 
 # Graph results
-dcompAT <- fitdistrplus::denscomp(list(fitAT_weib #, fitAT_nbinom
-                                       , fitAT_gamma)
-                , main = "Histogram of lifespan (AHS 2017)"
-                , legendtext = c("Weibull" #, "negative binomial"
-                                 , "gamma")
+dcompAT <- fitdistrplus::denscomp(list(fitAT_weib, fitAT_gamma)
+                , main = NULL
                 , xlab = "Number of years", xlim = c(0, 100)
-                , fitcol = c("darkorchid" #,"blue"
-                             ,"forestgreen")
-                # , fitalpha = c(0.3, 0.2, 0.1)
+                , fitcol = c(pal6[2],pal6[4])
                 , fitlty = 1, xlegend = "topright", plotstyle = "ggplot"
-                , addlegend = TRUE)
-dcompAT + ggplot2::theme_minimal() +
+                , addlegend = FALSE)
+dcompAT <- dcompAT + ggplot2::theme_bw() +
     ggplot2::geom_vline(xintercept = 18, color="red") +
     ggplot2::geom_vline(xintercept = 85, color="red") +
-    ggplot2::annotate(geom="text", label="18", x=21, y=0.035, color="red") +
-    ggplot2::annotate(geom="text", label="85", x=82, y=0.035, color="red")
+    ggplot2::annotate(geom="text",label="18",x=21,y=0.035,color="red",size=3) +
+    ggplot2::annotate(geom="text",label="85",x=82,y=0.035,color="red",size=3) +
+    ggplot2::theme(plot.title =ggplot2::element_blank()
+                   , axis.text = ggplot2::element_text(size=6)
+                   , axis.title = ggplot2::element_text(size=8)
+                   , legend.position = "none")
+
+fn_dcompAT <- file.path(outdir, "AT_HistGoF.png")
+ggplot2::ggsave(fn_dcompAT, dcompAT, height=4, width=7, units="in"
+                , dpi=bestdpi)
 
 ccompAT <- fitdistrplus::cdfcomp(list(fitAT_weib #, fitAT_nbinom
                                       , fitAT_gamma)
-                , main = "CDF of lifespan (AHS 2017)"
-                , legendtext = c("Weibull" #, "negative binomial"
-                                 , "gamma")
+                , main = NULL
                 , xlab = "Number of years", xlim = c(0, 100)
-                , fitcol = c("darkorchid" #,"blue"
-                             ,"forestgreen")
+                , fitcol = c(pal6[2],pal6[4])
                 , fitlty = 1, xlegend = "topright", plotstyle = "ggplot"
-                , addlegend = TRUE)
-ccompAT + ggplot2::theme_minimal() +
+                , addlegend = FALSE)
+ccompAT <- ccompAT + ggplot2::theme_bw() +
     ggplot2::geom_vline(xintercept = 18, color="red") +
     ggplot2::geom_vline(xintercept = 85, color="red") +
-    ggplot2::annotate(geom="text", label="18", x=21, y=0.875, color="red") +
-    ggplot2::annotate(geom="text", label="85", x=82, y=0.875, color="red")
+    ggplot2::annotate(geom="text",label="18",x=21,y=0.875,color="red",size=3) +
+    ggplot2::annotate(geom="text",label="85",x=82,y=0.875,color="red",size=3) +
+    ggplot2::theme(plot.title =ggplot2::element_blank()
+                   , axis.text = ggplot2::element_text(size=6)
+                   , axis.title = ggplot2::element_text(size=8)
+                   , legend.position="none")
+
+fn_ccompAT <- file.path(outdir, "AT_CDGoF.png")
+ggplot2::ggsave(fn_ccompAT, ccompAT, height=4, width=7, units="in"
+                , dpi=bestdpi)
+
+tg <- grid::textGrob("Averaging time goodness of fit curves"
+                     , gp=grid::gpar(fontsize=10))
+stg <- grid::textGrob("2017 Life table data"
+                     , gp=grid::gpar(fontsize=8))
+caption <- grid::textGrob("Purple line is Weibull distribution; green line is gamma", gp=grid::gpar(fontsize=6))
+
+fn_AT_PCDFs <- file.path(outdir, "AT_gof.png")
+p_AT_PCDFs <- gridExtra::grid.arrange(tg, dcompAT, blankPlot, ccompAT, stg
+                                      , caption, ncol=4, nrow=4
+                                      , layout_matrix = rbind(c(1,1,1,1)
+                                                              , c(5,5,5,5)
+                                                              , c(2,3,4,3)
+                                                              , c(6,6,6,6))
+                            , heights = c(0.2, 0.2, 4.3, 0.2)
+                            , widths = c(3,0.1,3,0.1))
+ggplot2::ggsave(fn_AT_PCDFs, p_AT_PCDFs, width=7, height=5, units="in"
+                , dpi=bestdpi)
+
+```
+
+```{r display_ATgof, out.width="80%"}
+
+knitr::include_graphics(fn_AT_PCDFs)
 
 rm(ccompAT, dcompAT, descAT17, descAT17disc, df_AT07, df_AT17, df_gof
    , fitAT_gamma, fitAT_weib, fitAT_nbinom, gof_AT_gamma, gof_AT_weib
    , gof_AT_nbinom, p_cdf2007, p_cdf2017, p_histAT2017, AT07_caption
-   , desc_caption, gof_caption, df_descAT17, df_ATvar, df_AT_adult)
+   , desc_caption, gof_caption, df_descAT17, df_ATvar, df_AT_adult
+   , fn_AT_PCDFs, fn_ccompAT, fn_dcompAT, p_AT_2011v2017, p_AT_PCDFs
+   , caption)
 
 ```
+
 
 Of the mechanistically plausible distributions, none fit the empirical data. Only the Weibull distribution appears somewhat close. Therefore, the empirical distribution will be used in the PRA, truncated between 18 and 85 years of age.
 
@@ -1379,7 +1506,6 @@ knitr::kable(df_AT_EProb_char, escape=FALSE, format=report_format, align="cr"
                , position = "left", fixed_thead = TRUE)
 
 ```
-
 
 
 ```{r AT_emp_adults}
@@ -1424,7 +1550,7 @@ df_ATvar <- mc2d::rempiricalC(nsamps, min=lbound, max=ubound
                               , values=df_AT_EProb_adult$AgeAtDeath
                               , prob = df_AT_EProb_adult$EProb)
 
-rm(lbound, ubound)
+rm(lbound, ubound, tg, stg)
 
 ```
 
@@ -1454,7 +1580,7 @@ Uncertainty in contaminant concentrations arise from many potential sources, suc
 
 The variability of EtO concentration in air is described by a lognormal distribution with the parameters meanlog = -1.716 and sdlog = 1.455. Table XX presents the parametric bootstrap results describing the 95% confidence interval areound the parameters. This bootstrap model will be used to represent uncertainty in the modeled EtO air concentration in the 2D-MC PRA. The Student's t method is shown for comparison.
 
-```{r CA_uncertainty, echo=FALSE}
+```{r CA_uncertainty, echo=FALSE, fig.show="hide"}
 
 # https://stackoverflow.com/questions/21843745/confidence-interval-for-mu-in-a-log-normal-distributions-in-r
 n <- nrow(df_CA)
@@ -1506,9 +1632,12 @@ knitr::kable(dfAirUncert, escape=FALSE, format=report_format, digits = 3
     kableExtra::collapse_rows(columns=1, valign="top") %>%
     kableExtra::footnote(paste0("n=",nsamps*0.5))
 
-fitdistrplus::CIcdfplot(boot_CA, "quantile", datapch = 1
-                        , datacol = "dark gray", do.points = FALSE
-                        , main = "Empirical and theoretical CDFs with CI"
+
+# Create graph comparing theoretical and empirical CDFs w/95% CI
+fn_pCAunc <- file.path(outdir,"CA_gofCDFwith95CI.png")
+fitdistrplus::CIcdfplot(boot_CA, "quantile", CI.col=pal6[4], fitcol=pal6[4]
+                        , datapch = 1, datacol = pal6[2], do.points = FALSE
+                        , main = "ECDF and theoretical CDF with 95% CI"
                         , xlab = xlabelCA, ylab = "Probability")
 
 # Keep parametric bootstrap results as describing uncertainty
@@ -1524,7 +1653,6 @@ Exposure time variability is described as a truncated normal distribution having
 
 ```{r ETUnc_boot, echo=FALSE}
 # compute by bootstrapping from fitdist object
-set.seed(123)
 boot_ET <- fitdistrplus::bootdist(fit_ET_tnorm
                                       , bootmethod = "nonparam"
                                       , niter = nsamps*0.25)
@@ -1666,7 +1794,7 @@ knitr::kable(dfATUncert, escape=FALSE, format=report_format, digits = 3
     kableExtra::collapse_rows(columns=1, valign="top")
 
 rm(ATUnc_caption, dfATUncert, n, alpha, t_critical_value, AT_CIstudentst
-   , df_ATsample, df_AT_EProb, df_AT_adult, df_ATvar)
+   , df_ATsample, df_AT_adult, df_ATvar)
 
 ```
 
@@ -1686,7 +1814,7 @@ Finally, the number of iterations in an MC simulation should be sufficient to ob
 
 Overall, the PRA assesses variability and uncertainty in the exposure assessment and risk characterization. Variability refers to the heterogeneity that occurs within a population. Factors leading to variability may include chemical concentrations in air and differences in exposure duration. Uncertainty refers to a lack of definitive information. This may stem from a lack of information or insufficient sample size to determine a PDF for a given parameter, such as exposure frequency. This may also stem from modeling to determine a toxicity value or modeling to calculate an exposure concentration. For this study, we used the "mc2d" package in R (Pouillot and Delignette-Muller 2010) to perform both the one-dimensional (MC1D) and the two-dimensional versions (MC2D).
 
-## Parameters of the PRA
+cra## Parameters of the PRA
 
 First, the analyst must assign each model parameter according to its category for use in the simulation. These categories are constants, variable parameters, uncertain parameters, or variable and uncertain parameters. A MC1D analysis uses distribution data for variability in parameters. It may also include variants for parameters known to be uncertain, but having only point estimates to represent the uncertainty (e.g., mean, median, and UCL values). Defining a model parameter described by scalar variants allows the analyst to perform one simulation that includes all variants. In contrast, a MC2D analysis incorporates the distributional representation of uncertainty for parameters for which there is greater knowledge about the uncertainty. 
 
@@ -1748,11 +1876,6 @@ The MC1D analysis uses the variability distributions described above for the par
 ```{r resdir, echo=FALSE, include=FALSE}
 
 # Create results dir, if it doesn't exist
-resultsdir <- file.path(getwd(),"Results")
-ifelse(!dir.exists(file.path(resultsdir))==TRUE
-       , dir.create(file.path(resultsdir))
-       , FALSE)
-
 library(mc2d)
 
 ```
@@ -1888,33 +2011,42 @@ for (n in 1:length(rnames)) {
     xlabel <- labels[n]
     xmin <- df_xlims[1, param]
     xmax <- df_xlims[2, param]
-    figfn <- file.path(resultsdir,paste0(param,"_1D.png"))
+    figfn <- file.path(outdir,paste0(param,"_1D.png"))
     
-    print(paste0(param,"; ", xlabel))
+    print(figfn)
+    flush.console()
     
     if (param=="ECvar") {next}
     
     # Prepare subset of data for plots
     df2plot <- data.frame("Parameter"=dfMC1d_var[,param])
     
-    # Generate Histogram
+    # Generate graphics
     # If risk, generate vertical line at 1e-6
     Param50 <- signif(median(df2plot$Parameter), digits=3)
     Param95 <- signif(quantile(df2plot$Parameter, probs = 0.95), digits=3)
-    histTitle <- paste0("Histogram of ", param)
-    cdfTitle <- paste0("Cumulative Distribution Function of ", param)
-    subtitle <- paste0("n=",format(niterv, big.mark = ","))
+    # histTitle <- paste0("Histogram of ", param)
+    # cdfTitle <- paste0("Cumulative Distribution Function of ", param)
+    # subtitle <- paste0("n=",format(niterv, big.mark = ","))
     Risk_max_iur95 <- 9.9e-3
     Risk_95ucl_iur95 <- 1.9e-3
+    
+    # Graph title, subtitle, captions (for risk)
+    tg <- grid::textGrob(paste0("Histogram and CDF of ", param)
+                     , gp=grid::gpar(fontsize=10, fontface="bold"))
+    stgVar <- grid::textGrob(paste0("n (variability)="
+                                    ,format(niterv, big.mark = ",")
+                                    ,"; Central tendency IUR")
+                             , gp=grid::gpar(fontsize=8))
+    captionRisk50 <- grid::textGrob(paste("Red line represents risk level = 1E-06", paste0("Blue line represents median risk level (", Param50, ")"), paste0("Green line represents 95th percentile risk level (", Param95,")"), sep="\n"), gp=grid::gpar(fontsize=6, fontface="italic"))
+
+    captionRisk95 <- grid::textGrob(paste("Red line represents risk level = 1E-06", paste0("Blue line represents median risk level (", Param50, ")"), paste0("Green line represents 95th percentile risk level (", Param95,")"), paste0("Orange line is the maximum point risk estimate (", Risk_max_iur95, ")"), paste0("Gray line is RME point risk estimate (", Risk_95ucl_iur95, ")"), sep="\n"), gp=grid::gpar(fontsize=6, fontface="italic"))
+    
+    captionElse <- grid::textGrob(paste(paste0("Blue line represents median parameter value (", Param50, ")"), paste0("Green line represents 95th percentile parameter level (", Param95,")"), sep="\n"), gp=grid::gpar(fontsize=6, fontface="italic"))
+
 
     if (param=="Risk50") {
         
-        captionRisk <- paste("Red line represents risk level = 1E-06"
-            , paste0("Blue line represents median risk level ("
-            , Param50, ")")
-            , paste0("Green line represents 95th percentile risk level ("
-            , Param95,")"), sep="\n")
-
         phist <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
             ggplot2::geom_histogram(bins=50, color="black", fill="white") +
             ggplot2::geom_vline(xintercept=1e-06, color="red") +
@@ -1922,12 +2054,9 @@ for (n in 1:length(rnames)) {
             ggplot2::geom_vline(xintercept=Param95, color="green", size=0.5) +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=histTitle, subtitle=subtitle
-                    , caption=captionRisk, x=xlabel, y="Frequency") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle=ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=8)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+            ggplot2::labs(x=xlabel, y="Frequency") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                    , axis.title = ggplot2::element_text(size = 6)
                     , legend.position = "none")
         
         pcdf <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
@@ -1937,28 +2066,23 @@ for (n in 1:length(rnames)) {
             ggplot2::geom_vline(xintercept = Param95, color = "green") +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=cdfTitle, subtitle=subtitle
-                    , caption=captionRisk, x=xlabel, y="Probability") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle=ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=8)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+            ggplot2::labs(x=xlabel, y="Probability") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                    , axis.title = ggplot2::element_text(size = 6)
                     , legend.position = "none")
+        
         ggplot2::ggsave(figfn
-                    , gridExtra::grid.arrange(phist, pcdf, ncol=2, nrow=1)
+                    , gridExtra::grid.arrange(tg, stgVar, phist, blankPlot
+                                , pcdf, captionRisk50, ncol=4, nrow=4
+                                , layout_matrix=rbind(c(1,1,1,1)
+                                                      , c(2,2,2,2)
+                                                      , c(3,4,5,4)
+                                                      , c(6,6,6,6))
+                                , widths=c(3.2,0.3,3.2,0.3)
+                                , heights=c(0.2, 0.2, 4, 0.6))
                     , width=7, height=5, units="in")
         
     } else if (param=="Risk95") {
-        
-        captionRisk <- paste("Red line represents risk level = 1E-06"
-            , paste0("Blue line represents median risk level ("
-            , Param50, ")")
-            , paste0("Green line represents 95th percentile risk level ("
-            , Param95,")")
-            , paste0("Orange line is the maximum point risk estimate ("
-                     , Risk_max_iur95, ")")
-            , paste0("Gray line is RME point risk estimate ("
-                     , Risk_95ucl_iur95, ")"), sep="\n")
 
         phist <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
             ggplot2::geom_histogram(bins=50, color="black", fill="white") +
@@ -1971,42 +2095,41 @@ for (n in 1:length(rnames)) {
                                 , size=1, linetype="dashed") +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=histTitle, subtitle=subtitle
-                    , caption=captionRisk, x=xlabel, y="Frequency") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=8)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
-                    , legend.position = "none")
+            ggplot2::labs(x=xlabel, y="Frequency") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                           , axis.title = ggplot2::element_text(size=8)
+                           , legend.position = "none")
         
         pcdf <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
             ggplot2::stat_ecdf() +
             ggplot2::geom_vline(xintercept = 1e-06, color="red") +
             ggplot2::geom_vline(xintercept = Param50, color="blue") +
-            ggplot2::geom_vline(xintercept = Param95, color="green",size=0.5) +
+            ggplot2::geom_vline(xintercept = Param95, color="green"
+                                , size=0.5) +
             ggplot2::geom_vline(xintercept = Risk_max_iur95, color="orange"
                                 , size=1, linetype="dashed") +
-                ggplot2::geom_vline(xintercept = Risk_95ucl_iur95, color="gray"
+            ggplot2::geom_vline(xintercept = Risk_95ucl_iur95
+                                    , color="gray"
                                 , size=1, linetype="dashed") +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=cdfTitle, subtitle=subtitle
-                    , caption=captionRisk, x=xlabel, y="Probability") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=8)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
-                    , legend.position = "none")
+            ggplot2::labs(x=xlabel, y="Probability") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=6)
+                           , axis.title = ggplot2::element_text(size=8)
+                           , legend.position = "none")
+
         ggplot2::ggsave(figfn
-                        , gridExtra::grid.arrange(phist, pcdf, ncol=2, nrow=1)
-                        , width=7, height=5, units="in")
-        
+                    , gridExtra::grid.arrange(tg, stgVar, phist, blankPlot
+                                , pcdf, captionRisk95, ncol=4, nrow=4
+                                , layout_matrix=rbind(c(1,1,1,1)
+                                                      , c(2,2,2,2)
+                                                      , c(3,4,5,4)
+                                                      , c(6,6,6,6))
+                                , widths=c(3.2,0.3,3.2,0.3)
+                                , heights=c(0.2, 0.2, 4, 0.6))
+                    , width=7, height=5, units="in")
+
     } else {
-        
-        captionElse <- paste(paste0("Blue line represents median parameter "
-                                    , "value (", Param50, ")")
-                     , paste0("Green line represents 95th percentile"
-                              , "parameter level (", Param95,")"), sep="\n")
 
         phist <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
             ggplot2::geom_histogram(bins=50, color="black", fill="white") +
@@ -2014,12 +2137,9 @@ for (n in 1:length(rnames)) {
             ggplot2::geom_vline(xintercept = Param95, color = "green") +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=histTitle, subtitle=subtitle
-                          , caption=captionElse, x=xlabel, y="Frequency") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=8)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+            ggplot2::labs(x=xlabel, y="Frequency") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=8)
+                    , axis.title = ggplot2::element_text(size = 6)
                     , legend.position = "none")
         
         pcdf <- ggplot2::ggplot(df2plot, ggplot2::aes(Parameter)) +
@@ -2028,17 +2148,21 @@ for (n in 1:length(rnames)) {
             ggplot2::geom_vline(xintercept = Param95, color = "green") +
             ggplot2::xlim(xmin, xmax) +
             ggplot2::theme_bw() +
-            ggplot2::labs(title=cdfTitle, subtitle=subtitle
-                          , caption=captionElse, x=xlabel, y="Probability") +
-            ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=10)
-                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=8)
-                    , axis.text = ggplot2::element_text(size=10)
-                    , plot.caption = ggplot2::element_text(hjust=0.5, size = 8)
+            ggplot2::labs(x=xlabel, y="Probability") +
+            ggplot2::theme(axis.text = ggplot2::element_text(size=8)
+                    , axis.title = ggplot2::element_text(size = 6)
                     , legend.position = "none")
+
         ggplot2::ggsave(figfn
-                        , gridExtra::grid.arrange(phist, pcdf, ncol=2, nrow=1)
-                        , width=7, height=5, units="in")
-        
+                    , gridExtra::grid.arrange(tg, stgVar, phist, blankPlot
+                                , pcdf, captionElse, ncol=4, nrow=4
+                                , layout_matrix=rbind(c(1,1,1,1)
+                                                      , c(2,2,2,2)
+                                                      , c(3,4,5,4)
+                                                      , c(6,6,6,6))
+                                , widths=c(3.2,0.3,3.2,0.3)
+                                , heights=c(0.2, 0.2, 4, 0.6))
+                    , width=7, height=5, units="in")
     }
     
     figfnls[n] <- figfn
@@ -2235,8 +2359,10 @@ The graph for risk changes with the MC2D results. In this case, the CDF still de
 ```{r mc2d_graphics, echo=FALSE}
 
 # Use mc2d plot.mc function to get appropriate data for graphing
-pCDF_mc2dRisk <- plot.mc(Risk2d, draw=FALSE, paint=FALSE)
-dfRiskECDFdata <- data.frame(unmc(pCDF_mc2dRisk$Risk))
+# pCDF_mc2dRisk <- plot.mc(Risk2d, draw=FALSE, paint=FALSE)
+# dfRiskECDFdata <- data.frame(unmc(pCDF_mc2dRisk$Risk))
+pCDF_mc2dRisk <- plot.mc(Risk2d$Risk, draw=FALSE, paint=FALSE)
+dfRiskECDFdata <- data.frame(unmc(pCDF_mc2dRisk))
 dfRiskECDFdata <- t(dfRiskECDFdata)
 rownames(dfRiskECDFdata) <- NULL
 dfRiskECDFdata <- data.frame(dfRiskECDFdata)
@@ -2246,7 +2372,7 @@ colnames(dfRiskECDFdata) <- c("median", "mean", "LCL2.5", "LCL25", "UCL75"
 # QUESTION: Should I be plotting the mean or median risk curve? MEDIAN
 Risk_max_iur95 <- 9.9e-3    # Deterministic value using max CA & IUR95
 Risk_95ucl_iur95 <- 1.9e-3  # Deterministic using 95UCL of mean CA & IUR 95
-
+Risk_reg <- 1.0e-6          # Regulatory criterion
 
 # Median value of median risk
 cdfTitleMed95CI <- paste("CDF of Risk Variability", "showing Median and 95% CI"
@@ -2282,11 +2408,13 @@ pcdf_risk_med95CI <- ggplot2::ggplot(dfRiskECDFdata, ggplot2::aes(x=median)) +
                        , ggplot2::aes(x=ecdf(LCL2.5)(0.5)
                                       , xend=ecdf(UCL97.5)(0.5)
                                       , y=0.5, yend=0.5), color="blue") +
+    ggplot2::geom_vline(xintercept = Risk_reg, color="red", size=1
+                        , linetype="dashed") +
     ggplot2::geom_vline(xintercept = Risk_max_iur95, color="orange"
                         , size=1, linetype="dashed") +
     ggplot2::geom_vline(xintercept = Risk_95ucl_iur95, color="purple"
                         , size=1, linetype="dashed") +
-    ggplot2::xlim(c(-0.00001,0.01)) +
+    ggplot2::xlim(c(-1e-5,0.01)) +
     ggplot2::theme_bw() +
     ggplot2::labs(title=cdfTitleMed95CI, subtitle=subtitle
             , caption=captionRiskMedian, x="Median Risk (MC2D results)"
@@ -2298,7 +2426,7 @@ pcdf_risk_med95CI <- ggplot2::ggplot(dfRiskECDFdata, ggplot2::aes(x=median)) +
             , plot.caption = ggplot2::element_text(hjust=0.5, size = 6)
             , legend.position = "none")
 
-fnMedRisk2d <- file.path(resultsdir,"RiskMedian95CI_2D.png")
+fnMedRisk2d <- file.path(outdir,"RiskMedian95CI_2D.png")
 ggplot2::ggsave(fnMedRisk2d, pcdf_risk_med95CI, width=7, height=5, units="in")
 
 # Plot IQR
@@ -2308,8 +2436,11 @@ pcdf_risk_medIQR <- ggplot2::ggplot(dfRiskECDFdata, ggplot2::aes(x=median)) +
     ggplot2::stat_ecdf(ggplot2::aes(x=UCL75), color="gray50", size=0.5) + 
     ggplot2::geom_vline(xintercept = as.numeric(ParamMedian), color="blue") +
     ggplot2::geom_segment(data=dfRiskECDFdata
-                       , ggplot2::aes(x=ecdf(LCL25)(0.5), xend=ecdf(UCL75)(0.5)
+                       , ggplot2::aes(x=ecdf(LCL25)(0.5)
+                                      , xend=ecdf(UCL75)(0.5)
                        , y=0.5, yend=0.5), color="blue") +
+    ggplot2::geom_vline(xintercept = Risk_reg, color="red", size=1
+                        , linetype="dashed") +
     ggplot2::geom_vline(xintercept = Risk_max_iur95, color="orange"
                         , size=1, linetype="dashed") +
     ggplot2::geom_vline(xintercept = Risk_95ucl_iur95, color="purple"
@@ -2326,10 +2457,10 @@ pcdf_risk_medIQR <- ggplot2::ggplot(dfRiskECDFdata, ggplot2::aes(x=median)) +
             , plot.caption = ggplot2::element_text(hjust=0.5, size = 6)
             , legend.position = "none")
 
-fnMedRisk2d <- file.path(resultsdir,"RiskMedianIQR_2D.png")
+fnMedRisk2d <- file.path(outdir,"RiskMedianIQR_2D.png")
 ggplot2::ggsave(fnMedRisk2d, pcdf_risk_medIQR, width=7, height=5, units="in")
 
-figfn <- file.path(resultsdir,"RiskMedian_BothCDFs.png")
+figfn <- file.path(outdir,"RiskMedian_BothCDFs.png")
 ggplot2::ggsave(figfn
                 , gridExtra::grid.arrange(pcdf_risk_med95CI, pcdf_risk_medIQR
                                           , ncol=2, nrow=1)
@@ -2372,11 +2503,118 @@ phistMedRiskUnc <- ggplot2::ggplot(RiskMedUnc
                    , plot.caption = ggplot2::element_text(hjust=1, size = 8)
                    , legend.position = "none")
 
-fighist <- file.path(resultsdir, "MedRiskVar_UncHist.png")
+fighist <- file.path(outdir, "MedRiskVar_UncHist.png")
 ggplot2::ggsave(fighist, phistMedRiskUnc, width=7, height=5, units="in")
 
 knitr::include_graphics(path = fighist)
 
+
+```
+
+```{r cleanup2, echo=FALSE, include=FALSE}
+
+rm(boot_CA, boot_ET, dcomp, descEDcont, df_AT_EProb, df_AT_EProb_adult
+   , df_CA_vu, df_ED_EProb, df_ED_temp, df_ET_vu, df_IURunc
+   , df_qq, df_xlims, dfVarOnly, ED_fit_gamma, p_AT_2011v2017
+   , pcdf_risk_medIQR, pcdf_risk_med95CI, phistMedRiskUnc, RiskMedUnc
+   , ADstargamma, ADstarln, ADstarwb, ADstatgamma, ADstatln, ADstatwb
+   , cdfTitleMed95CI, cdfTitleMedIQR, figfn, figfnls, fighist
+   , fn_AT_2011v2017, fn_ccompAT, fn_cdfEDall, fn_dcompAT, fn_EDgof
+   , fn_pCAunc, fnMedRisk2d, labels, mc2d_CACaption, mc2d_ETCaption
+   , mc2d_RiskCaption, ParamMedian, ParamMedianLCL, ParamMedianUCL
+   , riskhistcapt, sampq, subtitle, theorqg, theorqw)
+
+```
+
+
+# Jim's question re % population
+
+Q: Given observed variability of risk in the population, what percent will experience <1e-6 risk? What is the uncertainty in the estimate of the percent population?
+
+```{r pct_reglimit}
+
+# JD method
+makeCategory <- function(x,q) {
+    z <- quantile(x,q)
+    data.frame(pop = q
+           , "<1E-7" = z <1E-7
+           , "1E-7 to <1E-6" = z>=1E-7 & z<1E-6
+           , "1E-6 to <1E-5" = z>=1E-6 & z<1E-5
+           , "1E-5 to <1E-4" = z>=1E-5 & z<1E-4
+           , "1E-4 to <1E-3" = z>=1E-4 & z<1E-3
+           , ">1E-3" = z>1E-3
+           , check.names = FALSE)
+}
+
+# ARL_method -- extract dataframe
+dfVUrisk <- unmc(Risk2d$Risk)
+dfVUrisk2 <- as.data.frame(dfVUrisk)
+# This applies the function down the column (in other words, is like a total at the bottom of the dataframe). It is putting each column (Uncertainty) into a category based on the quantile (variability) in which that value falls.
+byCol <- sapply(c(0.25,0.5, 0.75, 0.9)
+             , function(x) apply(dfVUrisk, 2, makeCategory, x))
+# This applies the fuction across the rows. It is putting each row (variability) into a category based on the quantile (uncertainty) in which that value falls.
+byRow <- lapply(c(0.25,0.5, 0.75, 0.9)
+             , function(x) apply(dfVUrisk, 1, makeCategory, x))
+
+# JD method -- work on risk object itself
+xx <- sapply(c(0.25,0.5, 0.75, 0.9)
+             , function(x) apply(Risk2d$Risk, 2, makeCategory, x))
+zz <- dplyr::bind_rows(xx)
+zz2 <- dplyr::bind_rows(byCol)
+
+JDpopCats <- zz2 %>% 
+    dplyr::group_by(pop) %>% 
+    dplyr::summarise_all(mean) %>%
+    dplyr::mutate(pop = paste("Variability:", paste0(100 * pop, "%"))) %>%
+    tidyr::pivot_longer(cols = -pop) %>%
+    dplyr::mutate(name = factor(name
+                         , levels = c("<1E-7"
+                                      ,"1E-7 to <1E-6"
+                                      ,"1E-6 to <1E-5"
+                                      ,"1E-5 to <1E-4"
+                                      ,"1E-4 to <1E-3"
+                                      ,">1E-3")))
+p_JDpopCats <- ggplot2::ggplot(JDpopCats
+                               , ggplot2::aes(x=name, y=value
+                                              , col=name, fill=name)) + 
+    ggplot2::geom_col() + 
+    ggplot2::scale_color_manual(values=pal6[1:6]) +
+    ggplot2::scale_fill_manual(values=pal6[1:6]) +
+    ggplot2::facet_wrap(~pop) + 
+    ggplot2::theme_bw() +
+    ggplot2::labs(title="Confidence in potential cancer risk categories"
+                   , subtitle="Example population based on variability"
+                   , y="Confidence", x="Cancer Risk Range") +
+    ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=12)
+                   , plot.subtitle = ggplot2::element_text(hjust=0.5, size=10)
+                   , axis.title = ggplot2::element_text(size=10)
+                   , axis.text = ggplot2::element_text(size=8, angle=45
+                                                       , hjust=1))
+
+fn_popRiskbyCat <- file.path(outdir,"ConfidenceRiskPopulationSegment.png")
+ggplot2::ggsave(fn_popRiskbyCat, p_JDpopCats, width=8, height=6, units="in"
+                , dpi=bestdpi)
+
+knitr::include_graphics(fn_popRiskbyCat)
+
+#Obtain statistics of uncertainty for each sample of variability in risk
+RiskStatsrowwise <- apply(dfVUrisk,1, function(x) c(mean=mean(x)
+                                         , median=quantile(x, probs=0.5)
+                                         , LCL2.5=quantile(x, probs=0.0275)
+                                         , UCL97.5=quantile(x, probs=0.975)))
+RiskStatsrowwise <- as.data.frame(t(RiskStatsrowwise))
+colnames(RiskStatsrowwise) <- c("mean", "median", "LCL", "UCL")
+
+# Generate curves as functions to find y for any given x
+f_mean <- stats::ecdf(RiskStatsrowwise$mean)
+f_median <- stats::ecdf(RiskStatsrowwise$median)
+f_LCL <- stats::ecdf(RiskStatsrowwise$LCL)
+f_UCL <- stats::ecdf(RiskStatsrowwise$UCL)
+x=5e-5
+y_mean=f_mean(x)
+y_median=f_median(x)
+y_LCL=f_LCL(x)
+y_UCL=f_UCL(x)
 
 ```
 
