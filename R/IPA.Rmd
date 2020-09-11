@@ -2,6 +2,7 @@
 title: "Exposure Parameters and PRA"
 author: "Ann Roseberry Lincoln"
 date: "`r Sys.Date()`"
+R version: "R version: `r getRversion()`"
 output:
  html_document:
   toc: yes
@@ -14,7 +15,6 @@ output:
  pdf_document:
   toc: true
 always_allow_html: yes
-R version: "R version: `r getRversion()`"
 ---
 
 ```{r setup, include=FALSE}
@@ -1112,7 +1112,6 @@ rm(desc_ETvar, desc_caption, df_descETvar)
 
 # Fit truncated normal distribution: required functions 
 # Source: https://rdrr.io/cran/fitdistrplus/f/vignettes/FAQ.Rmd
-library(TruncatedDistributions)
 dtnorm <- function(x, mean, sd, low, upp)
 {
   PU <- pnorm(upp, mean=mean, sd=sd)
@@ -1814,7 +1813,7 @@ Finally, the number of iterations in an MC simulation should be sufficient to ob
 
 Overall, the PRA assesses variability and uncertainty in the exposure assessment and risk characterization. Variability refers to the heterogeneity that occurs within a population. Factors leading to variability may include chemical concentrations in air and differences in exposure duration. Uncertainty refers to a lack of definitive information. This may stem from a lack of information or insufficient sample size to determine a PDF for a given parameter, such as exposure frequency. This may also stem from modeling to determine a toxicity value or modeling to calculate an exposure concentration. For this study, we used the "mc2d" package in R (Pouillot and Delignette-Muller 2010) to perform both the one-dimensional (MC1D) and the two-dimensional versions (MC2D).
 
-cra## Parameters of the PRA
+## Parameters of the PRA
 
 First, the analyst must assign each model parameter according to its category for use in the simulation. These categories are constants, variable parameters, uncertain parameters, or variable and uncertain parameters. A MC1D analysis uses distribution data for variability in parameters. It may also include variants for parameters known to be uncertain, but having only point estimates to represent the uncertainty (e.g., mean, median, and UCL values). Defining a model parameter described by scalar variants allows the analyst to perform one simulation that includes all variants. In contrast, a MC2D analysis incorporates the distributional representation of uncertainty for parameters for which there is greater knowledge about the uncertainty. 
 
@@ -1901,8 +1900,8 @@ IURunc <- mcdata(c(IUR50, IUR95), type="0", nvariates = 2)
 # Define Variables with parametric distributions
 CAvar <- mcstoc(rlnorm, type="V", meanlog=-1.716, sdlog=1.455, nsv=niterv
                 , seed=seed, lhs=TRUE)
-ETvar <- mcstoc(rtnorm, type="V", mean=1084/60, sd=311/60, a=4, b=24
-                , nsv=niterv, seed=seed, lhs=TRUE)
+ETvar <- mcstoc(rnorm, type="V", mean=1084/60, sd=311/60, nsv=niterv
+                , seed=seed, rtrunc=TRUE, linf=4, lsup=24, lhs=TRUE)
 EFvar <- mcstoc(runif, type="V", min=234, max=350, nsv=niterv, seed=seed)
 
 # Define variables with empirical distributions
@@ -2234,8 +2233,8 @@ CAvu <- mcstoc(rlnorm, type="VU", meanlog=CAmeanlog, sdlog=CA_sdlog
                , nsv=niterv, nsu=niteru, seed=seed, lhs=TRUE)
 ET_mean <- mcdata(boot_ET$estim$mean, type="U")
 ET_sd <- mcdata(boot_ET$estim$sd, type="U")
-ETvu <- mcstoc(rtnorm, type="VU", mean=ET_mean, sd=ET_sd, a=4, b=24
-                , nsv=niterv, nsu=niteru, seed=seed, lhs=TRUE)
+ETvu <- mcstoc(rnorm, type="VU", mean=ET_mean, sd=ET_sd, nsv=niterv
+               , nsu=niteru, seed=seed, rtrunc, linf=4, lsup=24, lhs=TRUE)
 
 # Define parameters with only uncertainty (parametric)
 IURunc <- mcstoc(rnorm, type="U", mean=2.06/CF3_ppm_ug_m3
@@ -2584,12 +2583,13 @@ p_JDpopCats <- ggplot2::ggplot(JDpopCats
     ggplot2::theme_bw() +
     ggplot2::labs(title="Confidence in potential cancer risk categories"
                    , subtitle="Example population based on variability"
-                   , y="Confidence", x="Cancer Risk Range") +
+                   , y="Probability", x="Cancer Risk Range") +
     ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=12)
                    , plot.subtitle = ggplot2::element_text(hjust=0.5, size=10)
                    , axis.title = ggplot2::element_text(size=10)
                    , axis.text = ggplot2::element_text(size=8, angle=45
-                                                       , hjust=1))
+                                                       , hjust=1)
+                   , legend.position = "none")
 
 fn_popRiskbyCat <- file.path(outdir,"ConfidenceRiskPopulationSegment.png")
 ggplot2::ggsave(fn_popRiskbyCat, p_JDpopCats, width=8, height=6, units="in"
