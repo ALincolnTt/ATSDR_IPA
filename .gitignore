@@ -19,6 +19,7 @@
 
 # RStudio files
 .Rproj.user/
+ATSDR_IPA.Rproj
 
 # produced vignettes
 vignettes/*.html
