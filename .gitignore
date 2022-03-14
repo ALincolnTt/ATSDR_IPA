@@ -20,6 +20,7 @@
 # RStudio files
 .Rproj.user/
 ATSDR_IPA.Rproj
+/shared/notebooks/
 
 # produced vignettes
 vignettes/*.html
@@ -38,9 +39,3 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-
-# Comma-separated value files
-*.csv
-
-# Image files
-*.png
